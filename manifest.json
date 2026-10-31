@@ -11,13 +11,13 @@
   "lang": "ru",
   "icons": [
     {
-      "src": "https://github.com/ReasonInThinking/Lite-NAN-Navigator/blob/main/image.png?raw=true",
+      "src": "image.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://github.com/ReasonInThinking/Lite-NAN-Navigator/blob/main/image.png?raw=true",
+      "src": "image.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

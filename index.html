@@ -908,58 +908,50 @@
 
 const voiceBtn = document.getElementById('voice-btn');
 const taskInput = document.getElementById('main-task-input');
-
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if (SpeechRecognition) {
     const recognition = new SpeechRecognition();
     recognition.lang = 'ru-RU';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    // Флаг, который показывает, запущена ли запись прямо сейчас
-    let isRecording = false;
-
-    function stopAndReset() {
-        try {
-            recognition.stop();
-            recognition.abort(); // Жестко обрываем сетевой поток Google
-        } catch(e) {}
-        
-        voiceBtn.textContent = '🎙️'; // Возвращаем микрофон вместо красного круга
-        voiceBtn.style.background = 'none'; // Сбрасываем красный фон если он был
-        isRecording = false;
-    }
 
     voiceBtn.addEventListener('click', () => {
-        // ЕСЛИ ИНТЕРНЕТ ЗАВИС И ГОРИТ КРАСНЫЙ КРУГ:
-        // Повторный клик мгновенно вызовет принудительный сброс!
-        if (isRecording) {
-            stopAndReset();
+        // Проверяем наличие интернета в секунду нажатия
+        if (!navigator.onLine) {
+            console.log("Офлайн! Переключаем на клавиатуру FUTO.");
+            taskInput.focus(); // Принудительно вызываем клавиатуру FUTO на экран
             return;
         }
 
+        // Если интернет есть — запускаем стандартный ввод
         try {
-            recognition.start();
-            isRecording = true;
-            voiceBtn.textContent = '🛑'; // Или сделайте тут красный круг текстом/стилями
+            if (voiceBtn.textContent === '🛑') {
+                recognition.abort();
+                voiceBtn.textContent = '🎙️';
+            } else {
+                recognition.start();
+                voiceBtn.textContent = '🛑';
+            }
         } catch (e) {
-            stopAndReset();
+            recognition.abort();
+            voiceBtn.textContent = '🎙️';
         }
     });
 
     recognition.onresult = (event) => {
-        taskInput.value = event.results[0][0].transcript;
-        stopAndReset();
+        taskInput.value = event.results.transcript;
+        voiceBtn.textContent = '🎙️';
     };
 
     recognition.onerror = (event) => {
-        console.log("Сеть отвалилась:", event.error);
-        stopAndReset(); // При любой системной ошибке мгновенно оживляем кнопку
+        // Если во время записи интернет отвалился или завис — аварийно открываем клавиатуру
+        console.log("Ошибка сети во время диктовки. Вызываем клавиатуру.");
+        recognition.abort();
+        voiceBtn.textContent = '🎙️';
+        taskInput.focus(); // Поднимаем FUTO на экран
     };
 
     recognition.onend = () => {
-        stopAndReset(); // Когда запись успешно завершилась сама
+        voiceBtn.textContent = '🎙️';
     };
 } else {
     voiceBtn.style.display = 'none';

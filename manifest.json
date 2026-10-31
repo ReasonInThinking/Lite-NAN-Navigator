@@ -8,5 +8,19 @@
   "short_name": "LiteNAN",
   "start_url": "/",
   "theme_color": "#ffffff",
-  "lang": "ru"
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "https://pwabuilder.com",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://pwabuilder.com",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

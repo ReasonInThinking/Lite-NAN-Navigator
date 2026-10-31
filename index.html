@@ -917,58 +917,49 @@ if (SpeechRecognition) {
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    let safetyTimeout = null; // Переменная для хранения таймера
+    // Флаг, который показывает, запущена ли запись прямо сейчас
+    let isRecording = false;
 
-    // Функция, которая принудительно возвращает кнопку к жизни
-    function resetVoiceButton() {
-        recognition.abort(); // Жестко прерываем зависший опрос серверов Google
-        voiceBtn.textContent = '🎙️'; // Возвращаем обычный микрофон
-        voiceBtn.style.opacity = '1';
-        if (safetyTimeout) {
-            clearTimeout(safetyTimeout); // Очищаем таймер, чтобы он не сработал дважды
-            safetyTimeout = null;
-        }
+    function stopAndReset() {
+        try {
+            recognition.stop();
+            recognition.abort(); // Жестко обрываем сетевой поток Google
+        } catch(e) {}
+        
+        voiceBtn.textContent = '🎙️'; // Возвращаем микрофон вместо красного круга
+        voiceBtn.style.background = 'none'; // Сбрасываем красный фон если он был
+        isRecording = false;
     }
 
     voiceBtn.addEventListener('click', () => {
-        // Если кнопка уже горит красным, повторное нажатие сбросит её досрочно
-        if (voiceBtn.textContent === '🛑') {
-            resetVoiceButton();
+        // ЕСЛИ ИНТЕРНЕТ ЗАВИС И ГОРИТ КРАСНЫЙ КРУГ:
+        // Повторный клик мгновенно вызовет принудительный сброс!
+        if (isRecording) {
+            stopAndReset();
             return;
         }
 
         try {
             recognition.start();
-            voiceBtn.textContent = '🛑'; 
-            voiceBtn.style.opacity = '0.6'; // Слегка приглушаем кнопку для красоты
-
-            // ЗАПУСКАЕМ ТАЙМЕР НА 10 СЕКУНД:
-            // Если интернет зависнет, через 10 сек кнопка сама вернется в норму
-            safetyTimeout = setTimeout(() => {
-                console.log("Голосовой ввод завис из-за сети. Срабатывает автосброс.");
-                resetVoiceButton();
-            }, 10000); // 10000 миллисекунд = 10 секунд
-
+            isRecording = true;
+            voiceBtn.textContent = '🛑'; // Или сделайте тут красный круг текстом/стилями
         } catch (e) {
-            // Защита на случай, если распознавание уже было запущено
-            resetVoiceButton();
+            stopAndReset();
         }
     });
 
     recognition.onresult = (event) => {
-        const resultText = event.results[0][0].transcript;
-        taskInput.value = resultText; 
-        resetVoiceButton(); // Успешно записали — сбрасываем таймер и возвращаем кнопку
+        taskInput.value = event.results[0][0].transcript;
+        stopAndReset();
     };
 
     recognition.onerror = (event) => {
-        console.log("Ошибка распознавания: ", event.error);
-        resetVoiceButton(); // Если браузер сам понял, что сети нет — мгновенно оживляем кнопку
+        console.log("Сеть отвалилась:", event.error);
+        stopAndReset(); // При любой системной ошибке мгновенно оживляем кнопку
     };
 
     recognition.onend = () => {
-        // Если запись закончилась сама по себе нормально (без зависаний)
-        resetVoiceButton();
+        stopAndReset(); // Когда запись успешно завершилась сама
     };
 } else {
     voiceBtn.style.display = 'none';

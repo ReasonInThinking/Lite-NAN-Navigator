@@ -6,7 +6,7 @@
   "orientation": "any",
   "scope": "/Lite-NAN-Navigator/",
   "short_name": "LiteNAN",
-  "start_url": "https://reasoninthinking.github.io/Lite-NAN-Navigator/",
+  "start_url": "https://reasoninthinking.github.io/Lite-NAN-Navigator/index.html",
   "theme_color": "#ffffff",
   "lang": "ru",
   "icons": [

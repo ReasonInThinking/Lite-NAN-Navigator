@@ -909,34 +909,71 @@
 const voiceBtn = document.getElementById('voice-btn');
 const taskInput = document.getElementById('main-task-input');
 
-// Проверяем, поддерживает ли браузер распознавание речи
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 if (SpeechRecognition) {
     const recognition = new SpeechRecognition();
     recognition.lang = 'ru-RU';
-    // Важно: заставляем использовать локальный оффлайн-движок телефона
     recognition.continuous = false;
     recognition.interimResults = false;
 
+    let safetyTimeout = null; // Переменная для хранения таймера
+
+    // Функция, которая принудительно возвращает кнопку к жизни
+    function resetVoiceButton() {
+        recognition.abort(); // Жестко прерываем зависший опрос серверов Google
+        voiceBtn.textContent = '🎙️'; // Возвращаем обычный микрофон
+        voiceBtn.style.opacity = '1';
+        if (safetyTimeout) {
+            clearTimeout(safetyTimeout); // Очищаем таймер, чтобы он не сработал дважды
+            safetyTimeout = null;
+        }
+    }
+
     voiceBtn.addEventListener('click', () => {
-        recognition.start();
-        voiceBtn.textContent = '🛑'; // Меняем иконку, когда идет запись
+        // Если кнопка уже горит красным, повторное нажатие сбросит её досрочно
+        if (voiceBtn.textContent === '🛑') {
+            resetVoiceButton();
+            return;
+        }
+
+        try {
+            recognition.start();
+            voiceBtn.textContent = '🛑'; 
+            voiceBtn.style.opacity = '0.6'; // Слегка приглушаем кнопку для красоты
+
+            // ЗАПУСКАЕМ ТАЙМЕР НА 10 СЕКУНД:
+            // Если интернет зависнет, через 10 сек кнопка сама вернется в норму
+            safetyTimeout = setTimeout(() => {
+                console.log("Голосовой ввод завис из-за сети. Срабатывает автосброс.");
+                resetVoiceButton();
+            }, 10000); // 10000 миллисекунд = 10 секунд
+
+        } catch (e) {
+            // Защита на случай, если распознавание уже было запущено
+            resetVoiceButton();
+        }
     });
 
     recognition.onresult = (event) => {
         const resultText = event.results[0][0].transcript;
-        taskInput.value = resultText; // Мгновенно вставляем текст в поле задачи
+        taskInput.value = resultText; 
+        resetVoiceButton(); // Успешно записали — сбрасываем таймер и возвращаем кнопку
+    };
+
+    recognition.onerror = (event) => {
+        console.log("Ошибка распознавания: ", event.error);
+        resetVoiceButton(); // Если браузер сам понял, что сети нет — мгновенно оживляем кнопку
     };
 
     recognition.onend = () => {
-        voiceBtn.textContent = '🎙️'; // Возвращаем микрофон на место
+        // Если запись закончилась сама по себе нормально (без зависаний)
+        resetVoiceButton();
     };
 } else {
-    voiceBtn.style.display = 'none'; // Если телефон совсем древний, скрываем кнопку
+    voiceBtn.style.display = 'none';
 }
 
-    
 
 
 

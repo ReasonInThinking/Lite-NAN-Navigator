@@ -23,4 +23,13 @@
       "purpose": "any"
     }
   ]
+
+    "scope_extensions": [
+    {
+      "origin": "https://*.github.com"
+    },
+    {
+      "origin": "https://github.com"
+    }
+  ]
 }

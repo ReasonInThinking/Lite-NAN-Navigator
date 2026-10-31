@@ -1,0 +1,12 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Lite Navigator",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "LiteNAN",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "lang": "ru"
+}

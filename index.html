@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Лайт-Навигатор</title>
+
+
+
+       <!-- Автономная SVG-фавиконка: белая мишень с красным фокусом по центру -->
+       <!-- Исправленная автономная фавиконка-бабочка в формате Base64 без пробелов -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZjVmNmZhIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTEyIDJ2MjBNMTIgMTJjMC0yLjUgNS03IDctN3MzIDQgMSA3LTQgMy04IDNjMC0yLjUtNS03LTctN3MtMyA0LTEgNyA0IDMgOCAzWiIvPjxwYXRoIGQ9Ik0xMiAxMmMwLTEuNSAzLTQgNS00czIgMiAwIDQtMyAyLTUgMm0tNSAwYzAtMS41LTMtNC01LTRzLTIgMiAwIDQgMyAyIDUgMnoiLz48L3N2Zz4=">
+
+
+
+
+    <style>
+        :root {
+            --bg-main: #090a0f;         /* Глубокий угольно-чёрный фон */
+            --card-bg: #13151f;         /* Тёмно-графитовые матовые карточки */
+            --border-color: #202433;    /* Приглушенные рамки */
+            --accent-red: #e74c3c;      /* Брусничный красный */
+            --accent-yellow: #f1c40f;   /* Янтарный жёлтый */
+            --accent-blue: #3498db;     /* Морозный голубой */
+            --text-main: #f5f6fa;       /* Снежно-белый текст */
+            --text-muted: #718093;      /* Серый текст */
+        }
+
+
+       * {
+           margin: 0; padding: 0; box-sizing: border-box;
+           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+           -webkit-tap-highlight-color: transparent;
+           user-select: none;
+       }
+
+        body, html {
+            width: 100%; height: 100%;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%; height: 100%;
+            max-width: 480px; margin: 0 auto;
+            padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px;
+            display: flex; flex-direction: column;
+        }
+
+        /* УВЕЛИЧЕННАЯ ШАПКА */
+        .app-header {
+            display: flex; justify-content: space-between; align-items: center;
+            height: 70px; border-bottom: 2px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .app-title { font-size: 1.4rem; font-weight: 900; letter-spacing: 0.5px; }
+        .nav-actions { display: flex; gap: 10px; }
+
+        /* МАССИВНЫЕ КНОПКИ В ШАПКЕ (50px) */
+        .btn-icon-nav {
+            width: 50px; height: 50px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-icon-nav:active { transform: scale(0.92); border-color: var(--accent-yellow); }
+        .btn-icon-nav svg { width: 24px; height: 24px; fill: none; stroke: var(--text-main); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* ЦЕНТРАЛЬНАЯ КАРТОЧКА ФОКУСА */
+        .main-focus-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 32px; padding: 32px;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; gap: 24px;
+            margin-top: auto; margin-bottom: auto;
+        }
+
+        .card-tag { font-size: 0.95rem; font-weight: 900; text-transform: uppercase; color: var(--accent-yellow); letter-spacing: 1px; }
+        .task-display-text { font-size: 1.55rem; font-weight: 700; line-height: 1.5; min-height: 48px; word-break: break-word; }
+
+        /* МАССИВНЫЕ ПОЛЯ ВВОДА И КНОПКИ (60px) */
+        .mobile-input {
+            width: 100%; height: 60px; background: rgba(0,0,0,0.3);
+            border: 2px solid var(--border-color); border-radius: 18px;
+            padding: 0 20px; font-size: 1.1rem; color: var(--text-main); outline: none;
+        }
+        .mobile-input:focus { border-color: var(--text-muted); }
+
+        .btn-action {
+            width: 100%; height: 60px; background: #3b31b3; color: var(--text-main);
+            border: none; border-radius: 18px; font-size: 1.15rem; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s;
+        }
+        .btn-action:active { transform: scale(0.97); }
+        .btn-action.btn-yellow { background: var(--accent-yellow); color: #090a0f; }
+
+        /* ИНДИКАТОРЫ ПРИОРИТЕТОВ В ОКНЕ ЦЕЛЕЙ */
+        .priority-label { font-size: 0.85rem; font-weight: 900; text-transform: uppercase; padding: 4px 10px; border-radius: 8px; align-self: flex-start; }
+        .p-high { background: rgba(231, 76, 60, 0.15); color: var(--accent-red); }
+        .p-medium { background: rgba(241, 196, 15, 0.15); color: var(--accent-yellow); }
+        .p-low { background: rgba(52, 152, 219, 0.15); color: var(--accent-blue); }
+
+        /* КРУПНЫЕ МОДАЛЬНЫЕ ОКНА ПО ЦЕНТРУ ЭКРАНА */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px;
+            transition: opacity 0.2s ease;
+        }
+        .modal-overlay.hidden { display: none !important; }
+
+        .modal-sheet {
+            width: 100%; max-width: 460px; background: #11121a; border: 2.5px solid var(--border-color);
+            border-radius: 36px; padding: 32px; display: flex; flex-direction: column; gap: 24px;
+            max-height: 85vh; box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+        }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); padding-bottom: 14px; }
+        .modal-header h3 { font-size: 1.3rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-close-modal { background: none; border: none; color: var(--text-muted); font-size: 1.6rem; cursor: pointer; padding: 4px 8px; }
+
+        /* Зона списков со скроллом */
+        .list-container { display: flex; flex-direction: column; gap: 14px; width: 100%; overflow-y: auto; max-height: 45vh; padding-right: 6px; }
+        .list-container::-webkit-scrollbar { width: 6px; }
+        .list-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+
+        /* ПЛАШКИ ЭЛЕМЕНТОВ СПИСКОВ */
+        .list-item {
+            background: rgba(255, 255, 255, 0.02); border: 2px solid var(--border-color); border-radius: 20px;
+            padding: 20px 22px; font-size: 1.2rem; font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 16px;
+        }
+
+        /* Цвета границ для приоритетных ачивок */
+        .list-item.border-high { border-left: 5px solid var(--accent-red); }
+        .list-item.border-medium { border-left: 5px solid var(--accent-yellow); }
+        .list-item.border-low { border-left: 5px solid var(--accent-blue); }
+
+        .list-item-done { color: var(--text-muted); text-decoration: line-through; }
+
+        /* Внутренние SVG-кнопки управления внутри плашек целей */
+        .btn-svg-action {
+            background: none; border: none; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; padding: 6px; transition: transform 0.1s ease;
+        }
+        .btn-svg-action:active { transform: scale(0.85); }
+        .btn-svg-action svg { width: 24px; height: 24px; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+        /* Цвета для разных типов иконок */
+        .btn-svg-complete svg { stroke: var(--accent-yellow); }
+        .btn-svg-delete svg { stroke: var(--accent-red); }
+
+        .empty-text { text-align: center; color: var(--text-muted); font-size: 1.1rem; padding: 40px 0; }
+    </style>
+
+
+
+</head>
+
+
+
+<body>
+
+  <body>
+
+      <div class="app-container">
+          <!-- ВЕРХНЯЯ ПАНЕЛЬ С 4 СВГ-КНОПКАМИ -->
+          <header class="app-header">
+              <div class="app-title">Cyber Focus</div>
+              <div class="nav-actions">
+                  <!-- 1. Кнопка будущей очереди задач (Иконка Списка) -->
+                  <button class="btn-icon-nav" id="btn-open-queue" title="Очередь планов">
+                      <svg viewBox="0 0 24 24">
+                          <line x1="8" y1="6" x2="21" y2="6"></line>
+                          <line x1="8" y1="12" x2="21" y2="12"></line>
+                          <line x1="8" y1="18" x2="21" y2="18"></line>
+                          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                      </svg>
+                  </button>
+                  <!-- 2. Кнопка долгосрочных целей (Иконка Флажка) -->
+                  <button class="btn-icon-nav" id="btn-open-priorities" title="3 главные цели">
+                      <svg viewBox="0 0 24 24">
+                          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                          <line x1="4" y1="22" x2="4" y2="15"></line>
+                      </svg>
+                  </button>
+                  <!-- 3. Кнопка архива выполненных (Иконка Кубка) -->
+                  <button class="btn-icon-nav" id="btn-open-history" title="Выполненные цели за сегодня">
+                      <svg viewBox="0 0 24 24">
+                          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                          <path d="M4 22h16"></path>
+                          <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path>
+                          <path d="M12 2a6 6 0 0 1 6 6v5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"></path>
+                      </svg>
+                  </button>
+                  <!-- 4. Кнопка полной очистки дня (Белый крестик X) -->
+                  <button class="btn-icon-nav" id="btn-reset-day" title="Начать новый день">
+                      <svg viewBox="0 0 24 24">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                  </button>
+              </div>
+          </header>
+
+          <!-- ЕДИНСТВЕННЫЙ ЦЕНТРАЛЬНЫЙ БЛОК НА ЭКРАНЕ -->
+          <main class="main-focus-card">
+              <!-- Режим ввода (Показывается если текущей активной ежедневной задачи нет) -->
+              <div id="setup-view" style="display: flex; flex-direction: column; gap: 16px;">
+                  <div class="card-tag">Новый шаг ⚡</div>
+                  <div class="task-display-text" style="min-height: auto;">Запишите задачу на сегодня:</div>
+                  <input type="text" id="main-task-input" class="mobile-input" placeholder="Напиши задачу на сейчас...">
+                  <button class="btn-action" id="main-start-btn" style="background: var(--accent-yellow); color: #090a0f;">Поехали! Начать 🚀</button>
+              </div>
+
+              <!-- Режим трекера фокуса с простым таймером времени -->
+           <div id="focus-view" style="display: none; flex-direction: column; gap: 16px;">
+             <!-- Надпись с лаконичной SVG-мишенью в самом начале строки -->
+<div class="card-tag" style="color: #868686; display: flex; align-items: center; gap: 8px;">
+  <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; display: inline-block; flex-shrink: 0;">
+      <circle cx="12" cy="12" r="10"></circle>
+      <circle cx="12" cy="12" r="3"></circle>
+  </svg>
+  <span>В фокусе на сегодня</span>
+</div>
+
+               <div class="task-display-text" id="focus-task-text">...</div>
+
+               <!-- Простая, лаконичная плашка таймера -->
+               <div style="font-size: 1.4rem; font-family: monospace; color: var(--accent-yellow); font-weight: 700; text-align: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; border: 1px dashed var(--border-color);">
+                   ⏱️ <span id="daily-timer-digits">00:00:00</span>
+               </div>
+
+               <!-- Кнопка завершения задачи с минималистичной SVG-иконкой шага вперёд -->
+ <button class="btn-action" id="main-complete-btn">
+     <span>Готово! Что дальше?</span>
+     <svg viewBox="0 0 24 24" style="width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; margin-left: 8px; display: inline-block; vertical-align: middle;">
+         <polyline points="9 18 15 12 9 6"></polyline>
+     </svg>
+ </button>
+
+           </div>
+          </main>
+      </div>
+
+      <!-- 1. ОКНО ОЧЕРЕДИ БУДУЩИХ ЗАДАЧ НА СЕГОДНЯ -->
+      <div id="modal-queue" class="modal-overlay hidden">
+          <div class="modal-sheet">
+            <!-- ОБНОВЛЕННЫЙ ЗАГОЛОВОК ОЧЕРЕДИ С КНОПКОЙ ОЧИСТКИ -->
+<div class="modal-header">
+  <div style="display: flex; align-items: center; gap: 10px;">
+      <h3>Планы на день 🐾</h3>
+
+
+  </div>
+  <button class="btn-close-modal">✕</button>
+</div>
+
+              <div style="display: flex; gap: 10px; width: 100%;">
+                  <input type="text" id="modal-queue-input" class="mobile-input" style="height: 50px;" placeholder="Добавить в очередь дня...">
+                  <button class="btn-action" id="modal-queue-add-btn" style="width: 50px; height: 50px;">+</button>
+              </div>
+              <div class="list-container" id="modal-queue-list"></div>
+              <div id="modal-queue-empty" class="empty-text">Очередь планов пуста.</div>
+          </div>
+      </div>
+
+      <!-- 2. ОТДЕЛЬНЫЙ МОДУЛЬ ЦЕЛЕЙ НА МЕСЯЦ/НЕДЕЛЮ -->
+      <div id="modal-priorities" class="modal-overlay hidden">
+          <div class="modal-sheet" style="max-height: 90vh;">
+              <div class="modal-header">
+                  <h3>Глобальные цели 🎯</h3>
+                  <button class="btn-close-modal">✕</button>
+              </div>
+              <div class="list-container" style="max-height: 65vh;">
+                  <!-- Высокий приоритет -->
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                      <span class="priority-label p-high">Высокий приоритет</span>
+                      <input type="text" id="input-high" class="mobile-input" style="height: 50px;" placeholder="Установить цель...">
+                      <div id="box-high" class="list-item border-high hidden"></div>
+                  </div>
+                  <!-- Средний приоритет -->
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                      <span class="priority-label p-medium">Средний приоритет</span>
+                      <input type="text" id="input-medium" class="mobile-input" style="height: 50px;" placeholder="Установить цель...">
+                      <div id="box-medium" class="list-item border-medium hidden"></div>
+                  </div>
+                  <!-- Низкий приоритет -->
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                      <span class="priority-label p-low">Низкий приоритет</span>
+                      <input type="text" id="input-low" class="mobile-input" style="height: 50px;" placeholder="Установить цель...">
+                      <div id="box-low" class="list-item border-low hidden"></div>
+                  </div>
+              </div>
+              <button class="btn-action btn-yellow" id="btn-save-priorities" style="height: 50px; font-size: 1rem;">Зафиксировать цели 🔒</button>
+          </div>
+      </div>
+
+      <!-- 3. ОКНО АРХИВА ДОСТИЖЕНИЙ (ОБНОВЛЕННОЕ С ДВУМЯ СТЕКАМИ) -->
+<div id="modal-history" class="modal-overlay hidden">
+    <div class="modal-sheet" style="max-height: 90vh;">
+        <div class="modal-header">
+            <h3>Архив достижений 🏆</h3>
+            <button class="btn-close-modal">✕</button>
+        </div>
+
+        <div class="list-container" style="max-height: 70vh; display: flex; flex-direction: column; gap: 20px;">
+
+            <!-- СТЕК А: ВЫПОЛНЕННЫЕ ГЛОБАЛЬНЫЕ ЦЕЛИ -->
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                    <span class="priority-label p-medium" style="color: var(--accent-yellow); background: rgba(241, 196, 15, 0.1);">Глобальные цели🎯</span>
+                    <button class="btn-action btn-yellow" id="btn-download-goals" style="height: 34px; width: auto; padding: 0 12px; font-size: 0.85rem; border-radius: 10px;">Скачать JSON 📥</button>
+                </div>
+                <div id="modal-goals-history-list" class="list-container" style="max-height: 25vh; overflow-y: auto;"></div>
+                <div id="modal-goals-history-empty" class="empty-text" style="padding: 15px 0; font-size: 0.95rem;">Выполненных долгосрочных целей пока нет.</div>
+            </div>
+
+            <!-- СТЕК Б: ВЫПОЛНЕННЫЕ ДЕЛА НА ДЕНЬ (С АВТО-СОРТИРОВКОЙ ПО ВРЕМЕНИ) -->
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+        <span class="priority-label p-low" style="color: var(--accent-blue); background: rgba(52, 152, 219, 0.1);">Дела на день 🐾</span>
+        <button id="btn-clear-dailies-only" style="background: rgba(231, 76, 60, 0.15); border: 1px solid var(--accent-red); color: var(--accent-red); font-size: 0.75rem; font-weight: 900; padding: 4px 8px; border-radius: 8px; cursor: pointer; text-transform: uppercase;">Очистить</button>
+
+    </div>
+    <div id="modal-dailies-history-list" class="list-container" style="max-height: 40vh; overflow-y: auto;"></div>
+    <div id="modal-dailies-history-empty" class="empty-text" style="padding: 15px 0; font-size: 0.95rem;">Выполненных задач на сегодня нет.</div>
+</div>
+
+
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+    <div class="app-container">
+        <!-- ВЕРХНЯЯ ПАНЕЛЬ С СВГ-КНОПКАМИ -->
+        <!-- ВЕРХНЯЯ ПАНЕЛЬ С СВГ-КНОПКАМИ (ОБНОВЛЕННАЯ) -->
+  <header class="app-header">
+      <div class="app-title">Cyber Focus</div>
+      <div class="nav-actions">
+          <!-- Кнопка будущих задач (Иконка Списка) -->
+          <button class="btn-icon-nav" id="btn-open-queue" title="Будущие задачи">
+              <svg viewBox="0 0 24 24">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+          </button>
+          <!-- Кнопка архива выполненных (Иконка Кубка) -->
+          <button class="btn-icon-nav" id="btn-open-history" title="Выполненные задачи">
+              <svg viewBox="0 0 24 24">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                  <path d="M4 22h16"></path>
+                  <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"></path>
+                  <path d="M12 2a6 6 0 0 1 6 6v5a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8a6 6 0 0 1 6-6z"></path>
+              </svg>
+          </button>
+          <!-- Кнопка полной очистки дня (Белый крестик X) -->
+          <button class="btn-icon-nav" id="btn-reset-day" title="Начать новый день" style="border-color: rgba(255, 255, 255, 0.15);">
+              <svg viewBox="0 0 24 24" style="stroke: #ffffff;">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+          </button>
+      </div>
+  </header>
+
+
+        <!-- ЕДИНСТВЕННЫЙ ЦЕНТРАЛЬНЫЙ БЛОК -->
+        <main class="main-focus-card">
+            <!-- Интерфейс ввода (Показывается если текущей задачи нет) -->
+            <div id="setup-view" style="display: flex; flex-direction: column; gap: 16px;">
+                <div class="card-tag">Новый шаг ⚡</div>
+                <div class="task-display-text" style="min-height: auto;">Какая у нас главная задача?</div>
+                <input type="text" id="main-task-input" class="mobile-input" placeholder="Напиши задачу на сейчас...">
+                <button class="btn-action" id="main-start-btn" style="background: var(--accent-yellow); color: #090a0f;">Поехали! Начать 🚀</button>
+            </div>
+
+            <!-- Интерфейс трекера фокуса (Показывается когда задача запущена) -->
+            <div id="focus-view" style="display: none; flex-direction: column; gap: 16px;">
+                <div class="card-tag" style="color: var(--accent-red);">В фокусе 🔥</div>
+                <div class="task-display-text" id="focus-task-text">...</div>
+                <button class="btn-action" id="main-complete-btn">Готово! Что дальше? ✨</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- ОКНО ОЧЕРЕДИ БУДУЩИХ ЗАДАЧ (Выезжает снизу) -->
+    <div id="modal-queue" class="modal-overlay hidden">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <h3>Очередь планов 🐾</h3>
+                <button class="btn-close-modal">✕</button>
+            </div>
+            <!-- Быстрое добавление будущей задачи прямо внутри модалки -->
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <input type="text" id="modal-queue-input" class="mobile-input" style="height: 46px;" placeholder="Добавить задачу в очередь...">
+                <button class="btn-action" id="modal-queue-add-btn" style="width: 46px; height: 46px;">+</button>
+            </div>
+            <div class="list-container" id="modal-queue-list"></div>
+            <div id="modal-queue-empty" class="empty-text">Очередь планов пуста.</div>
+        </div>
+    </div>
+
+    <!-- ОКНО ВЫПОЛНЕННЫХ ЗАДАЧ (Выезжает снизу) -->
+    <div id="modal-history" class="modal-overlay hidden">
+        <div class="modal-sheet">
+            <div class="modal-header">
+                <h3>Выполнено за сегодня 🏆</h3>
+                <button class="btn-close-modal">✕</button>
+            </div>
+            <div class="list-container" id="modal-history-list"></div>
+            <div id="modal-history-empty" class="empty-text">Выполненных задач пока нет.</div>
+        </div>
+    </div>
+
+
+<script>
+  // 1. Поиск элементов управления главного экрана
+  const setupView = document.getElementById('setup-view');
+  const focusView = document.getElementById('focus-view');
+  const mainTaskInput = document.getElementById('main-task-input');
+  const mainStartBtn = document.getElementById('main-start-btn');
+  const focusTaskText = document.getElementById('focus-task-text');
+  const mainCompleteBtn = document.getElementById('main-complete-btn');
+  const dailyTimerDigits = document.getElementById('daily-timer-digits'); // Цифры таймера
+
+  // Кнопки верхней панели (Шапки)
+  const btnOpenQueue = document.getElementById('btn-open-queue');
+  const btnOpenPriorities = document.getElementById('btn-open-priorities');
+  const btnOpenHistory = document.getElementById('btn-open-history');
+  const btnResetDay = document.getElementById('btn-reset-day');
+
+  // Модальные окна
+  const modalQueue = document.getElementById('modal-queue');
+  const modalPriorities = document.getElementById('modal-priorities');
+  const modalHistory = document.getElementById('modal-history');
+
+  // Элементы Очереди на день
+  const modalQueueInput = document.getElementById('modal-queue-input');
+  const modalQueueAddBtn = document.getElementById('modal-queue-add-btn');
+  const modalQueueList = document.getElementById('modal-queue-list');
+  const modalQueueEmpty = document.getElementById('modal-queue-empty');
+
+  // Элементы окна Глобальных целей
+  const btnSavePriorities = document.getElementById('btn-save-priorities');
+  const priorityInputs = {
+      high: document.getElementById('input-high'),
+      medium: document.getElementById('input-medium'),
+      low: document.getElementById('input-low')
+  };
+  const priorityBoxes = {
+      high: document.getElementById('box-high'),
+      medium: document.getElementById('box-medium'),
+      low: document.getElementById('box-low')
+  };
+
+  // Ключи локальной памяти смартфона localStorage
+  const KEY_CURRENT_DAILY = 'winter_focus_current_daily';
+  const KEY_QUEUE_DAILY = 'winter_focus_queue_daily';
+  const KEY_GLOBAL_PRIORITIES = 'winter_focus_global_priorities';
+  const KEY_DAILY_HISTORY = 'winter_focus_dailies_history';
+  const KEY_GOALS_HISTORY = 'winter_focus_goals_history';
+  const KEY_DAILY_TIME_START = 'winter_focus_daily_time_start'; // Метка старта задачи
+
+  // Состояния массивов данных
+  let currentDailyTask = '';
+  let queueDailyTasks = [];
+  let globalPriorities = { high: '', medium: '', low: '' };
+
+  // Массив бытовых задач теперь хранит объекты [{ text: '...', time: 120 }, ...]
+  let dailyHistoryTasks = [];
+  let goalsHistoryTasks = [];
+
+  // Переменные для текущего отсчёта времени
+  let totalSeconds = 0;
+  let timerInterval = null;
+
+  function saveState() {
+      localStorage.setItem(KEY_CURRENT_DAILY, currentDailyTask);
+      localStorage.setItem(KEY_QUEUE_DAILY, JSON.stringify(queueDailyTasks));
+      localStorage.setItem(KEY_GLOBAL_PRIORITIES, JSON.stringify(globalPriorities));
+      localStorage.setItem(KEY_DAILY_HISTORY, JSON.stringify(dailyHistoryTasks));
+      localStorage.setItem(KEY_GOALS_HISTORY, JSON.stringify(goalsHistoryTasks));
+  }
+
+  // Преобразование секунд в формат ЧЧ:ММ:СС
+  function formatTimeDigits(seconds) {
+      const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+      const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      return `${h}:${m}:${s}`;
+  }
+
+  // Красивое приведение времени к тексту для вывода в списках
+  function formatReadableTime(seconds) {
+      if (seconds < 60) return `${seconds} сек`;
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return s > 0 ? `${m} мин ${s} сек` : `${m} мин`;
+  }
+
+  // Посекундный перерасчёт времени на основе системных меток Timestamp
+  function refreshTimerDigits() {
+      const startTime = localStorage.getItem(KEY_DAILY_TIME_START);
+      if (startTime !== null) {
+          totalSeconds = Math.floor((Date.now() - parseInt(startTime, 10)) / 1000);
+      } else {
+          totalSeconds = 0;
+      }
+      if (dailyTimerDigits) dailyTimerDigits.textContent = formatTimeDigits(totalSeconds);
+  }
+
+  // Логика переключения режимов на главном экране
+  function updateDisplayMain() {
+      if (currentDailyTask !== '') {
+          focusTaskText.textContent = currentDailyTask;
+          setupView.style.display = 'none';
+          focusView.style.display = 'flex';
+
+          // Если задача активна, но интервал ещё не запущен — запускаем тиканье часов
+          if (!timerInterval) {
+              if (localStorage.getItem(KEY_DAILY_TIME_START) === null) {
+                  localStorage.setItem(KEY_DAILY_TIME_START, Date.now().toString());
+              }
+              refreshTimerDigits();
+              timerInterval = setInterval(refreshTimerDigits, 1000);
+          }
+      } else {
+          setupView.style.display = 'flex';
+          focusView.style.display = 'none';
+
+          // Если активной задачи нет, полностью глушим и сбрасываем таймер
+          if (timerInterval) {
+              clearInterval(timerInterval);
+              timerInterval = null;
+          }
+          localStorage.removeItem(KEY_DAILY_TIME_START);
+          totalSeconds = 0;
+          if (dailyTimerDigits) dailyTimerDigits.textContent = '00:00:00';
+          mainTaskInput.focus();
+      }
+  }
+
+  // 2. РЕНДЕРИНГ РАЗДЕЛЬНЫХ АРХИВОВ ДОСТИЖЕНИЙ (Кубок)
+  function renderHistoryList() {
+      const modalGoalsHistoryList = document.getElementById('modal-goals-history-list');
+      const modalGoalsHistoryEmpty = document.getElementById('modal-goals-history-empty');
+      const modalDailiesHistoryList = document.getElementById('modal-dailies-history-list');
+      const modalDailiesHistoryEmpty = document.getElementById('modal-dailies-history-empty');
+
+      const btnDownloadGoals = document.getElementById('btn-download-goals');
+      const btnDownloadDailies = document.getElementById('btn-download-dailies');
+
+      if (!modalGoalsHistoryList || !modalDailiesHistoryList) return;
+
+      // --- СТЕК А: Выполненные глобальные цели ---
+      modalGoalsHistoryList.innerHTML = '';
+      if (goalsHistoryTasks.length > 0) {
+          if (modalGoalsHistoryEmpty) modalGoalsHistoryEmpty.style.display = 'none';
+          if (btnDownloadGoals) btnDownloadGoals.style.display = 'flex';
+          goalsHistoryTasks.forEach((item, index) => {
+              const el = document.createElement('div');
+              el.className = `list-item list-item-done border-${item.priority}`;
+              el.innerHTML = `
+                  <span style="flex: 1; text-align: left;">${item.text}</span>
+                  <button class="btn-svg-action btn-svg-delete" title="Удалить цель">
+                      <svg viewBox="0 0 24 24" style="pointer-events: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
+              `;
+
+              el.querySelector('.btn-svg-delete').addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  goalsHistoryTasks.splice(index, 1);
+                  saveState();
+                  updateDisplay();
+              });
+              modalGoalsHistoryList.appendChild(el);
+          });
+      } else {
+          if (modalGoalsHistoryEmpty) modalGoalsHistoryEmpty.style.display = 'block';
+          if (btnDownloadGoals) btnDownloadGoals.style.display = 'none';
+      }
+
+      // --- СТЕК Б: Выполненные дела на день (УМНАЯ СОРТИРОВКА ПО ЗАТРАТАМ ВРЕМЕНИ) ---
+      modalDailiesHistoryList.innerHTML = '';
+      if (dailyHistoryTasks.length > 0) {
+          if (modalDailiesHistoryEmpty) modalDailiesHistoryEmpty.style.display = 'none';
+          if (btnDownloadDailies) btnDownloadDailies.style.display = 'flex';
+
+          // Создаём копию массива и сортируем её: от самого БОЛЬШОГО времени к меньшему
+          const sortedDailies = [...dailyHistoryTasks].sort((a, b) => b.time - a.time);
+
+          sortedDailies.forEach((taskObj) => {
+              const el = document.createElement('div');
+              el.className = 'list-item list-item-done';
+              el.innerHTML = `
+                  <div style="display: flex; flex-direction: column; gap: 4px; text-align: left; flex: 1;">
+                      <span style="font-weight: 700;">${taskObj.text}</span>
+                      <span style="font-size: 0.85rem; color: var(--accent-yellow); font-weight: 900;">⏱️ Времени ушло: ${formatReadableTime(taskObj.time)}</span>
+                  </div>
+                  <button class="btn-svg-action btn-svg-delete" title="Удалить задачу">
+                      <svg viewBox="0 0 24 24" style="pointer-events: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </button>
+              `;
+
+              // Поиск оригинального индекса в исходном массиве для точечного удаления
+              el.querySelector('.btn-svg-delete').addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  const origIndex = dailyHistoryTasks.findIndex(t => t.text === taskObj.text && t.time === taskObj.time);
+                  if (origIndex !== -1) {
+                      dailyHistoryTasks.splice(origIndex, 1);
+                  }
+                  saveState();
+                  updateDisplay();
+              });
+              modalDailiesHistoryList.appendChild(el);
+          });
+      } else {
+          if (modalDailiesHistoryEmpty) modalDailiesHistoryEmpty.style.display = 'block';
+          if (btnDownloadDailies) btnDownloadDailies.style.display = 'none';
+      }
+  }
+
+  window.renderHistoryList = renderHistoryList;
+
+  // Главная функция рендеринга всех окон
+  function updateDisplay() {
+      updateDisplayMain();
+
+      // 1. Очередь бытовых задач на день
+      modalQueueList.innerHTML = '';
+      if (queueDailyTasks.length > 0) {
+          modalQueueEmpty.style.display = 'none';
+          queueDailyTasks.forEach((task, index) => {
+              const el = document.createElement('div');
+              el.className = 'list-item';
+              el.innerHTML = `<span>${task}</span><span style="color: var(--accent-yellow); font-size: 0.85rem; font-weight:bold;">Начать сейчас ⚡</span>`;
+              el.addEventListener('click', () => {
+                  if (currentDailyTask !== '') queueDailyTasks.unshift(currentDailyTask);
+                  currentDailyTask = queueDailyTasks[index];
+                  queueDailyTasks.splice(index, 1);
+
+                  // При переключении сбрасываем старую метку времени, чтобы пошёл чистый отсчёт новой задачи
+                  localStorage.removeItem(KEY_DAILY_TIME_START);
+
+                  modalQueue.classList.add('hidden');
+                  saveState();
+                  updateDisplay();
+              });
+              modalQueueList.appendChild(el);
+          });
+      } else {
+          modalQueueEmpty.style.display = 'block';
+      }
+
+      // 2. Список глобальных целей
+      Object.keys(globalPriorities).forEach(key => {
+          const targetText = globalPriorities[key];
+          if (targetText !== '') {
+              priorityInputs[key].classList.add('hidden');
+
+              priorityBoxes[key].innerHTML = `
+                  <span style="flex: 1; word-break: break-word; padding-right: 10px; text-align: left;">${targetText}</span>
+                  <div style="display: flex; gap: 6px;">
+                      <button class="btn-svg-action btn-svg-complete" title="Выполнить цель">
+                          <svg viewBox="0 0 24 24" style="pointer-events: none;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      </button>
+                      <button class="btn-svg-action btn-svg-delete" title="Удалить цель">
+                          <svg viewBox="0 0 24 24" style="pointer-events: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      </button>
+                  </div>
+              `;
+
+              priorityBoxes[key].classList.remove('hidden');
+              priorityBoxes[key].style.display = 'flex';
+
+              // Выполнить глобальную цель
+              priorityBoxes[key].querySelector('.btn-svg-complete').addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  goalsHistoryTasks.unshift({ text: targetText, priority: key });
+                  globalPriorities[key] = '';
+                  saveState();
+                  updateDisplay();
+              });
+
+              // Стереть глобальную цель
+              priorityBoxes[key].querySelector('.btn-svg-delete').addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  globalPriorities[key] = '';
+                  saveState();
+                  updateDisplay();
+              });
+          } else {
+              priorityInputs[key].classList.remove('hidden');
+              priorityBoxes[key].classList.add('hidden');
+              priorityBoxes[key].style.display = 'none';
+          }
+      });
+
+      renderHistoryList();
+  }
+
+  // ==================== БЛОК 3.3 (ЧАСТЬ 2 ИЗ 2) ====================
+  // ОБРАБОТКА ДЕЙСТВИЙ ГЛАВНОГО ЭКРАНА (Ежедневные дела на сегодня)
+  mainStartBtn.addEventListener('click', () => {
+      const text = mainTaskInput.value.trim();
+      if (text === '') return;
+      currentDailyTask = text;
+      mainTaskInput.value = '';
+
+      // Ставим чистую метку времени для новой задачи
+      localStorage.setItem(KEY_DAILY_TIME_START, Date.now().toString());
+
+      saveState();
+      updateDisplay();
+  });
+
+  mainTaskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') mainStartBtn.click(); });
+
+  mainCompleteBtn.addEventListener('click', () => {
+      if (currentDailyTask === '') return;
+
+      // Фиксируем, сколько секунд натикало по системным часам
+      refreshTimerDigits();
+
+      // Сохраняем задачу в историю как объект с текстом и затраченным временем
+      dailyHistoryTasks.unshift({
+          text: currentDailyTask,
+          time: totalSeconds > 0 ? totalSeconds : 1 // Защита от нулевого времени
+      });
+
+      // Сбрасываем метку времени старого таймера
+      localStorage.removeItem(KEY_DAILY_TIME_START);
+
+      // Автоматически подтягиваем следующую задачу из ежедневной очереди
+      if (queueDailyTasks.length > 0) {
+          currentDailyTask = queueDailyTasks.shift();
+          // Ставим новую метку времени для подтянутой задачи
+          localStorage.setItem(KEY_DAILY_TIME_START, Date.now().toString());
+      } else {
+          currentDailyTask = '';
+      }
+
+      saveState();
+      updateDisplay();
+  });
+
+  // НАВИГАЦИЯ ОКOН (ОТКРЫТИЕ МОДАЛОК ПРИ КЛИКЕ НА СВГ-КНОПКИ В ШАПКЕ)
+  btnOpenQueue.addEventListener('click', () => { modalQueue.classList.remove('hidden'); updateDisplay(); });
+  btnOpenPriorities.addEventListener('click', () => { modalPriorities.classList.remove('hidden'); updateDisplay(); });
+  btnOpenHistory.addEventListener('click', () => { modalHistory.classList.remove('hidden'); updateDisplay(); });
+
+  // Сохранение и фиксация 3-х долгосрочных глобальных целей
+  btnSavePriorities.addEventListener('click', () => {
+      let hasChanges = false;
+      Object.keys(priorityInputs).forEach(key => {
+          const text = priorityInputs[key].value.trim();
+          if (text !== '') {
+              globalPriorities[key] = text;
+              priorityInputs[key].value = '';
+              hasChanges = true;
+          }
+      });
+      saveState();
+      updateDisplay();
+      if (hasChanges) modalPriorities.classList.add('hidden');
+  });
+
+  // Быстрое добавление задач в ежедневную очередь планов
+  modalQueueAddBtn.addEventListener('click', () => {
+      const text = modalQueueInput.value.trim();
+      if (text === '') return;
+      queueDailyTasks.push(text);
+      modalQueueInput.value = '';
+      saveState();
+      updateDisplay();
+  });
+  modalQueueInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') modalQueueAddBtn.click(); });
+
+  // СБРОС ВСЕГО ДНЯ ПРИ КЛИКЕ НА КРЕСТИК В ШАПКЕ
+  btnResetDay.addEventListener('click', () => {
+      if (confirm('Сбросить текущие задачи, очередь планов и очистить всю историю достижений? ❄️')) {
+          currentDailyTask = '';
+          queueDailyTasks = [];
+          globalPriorities = { high: '', medium: '', low: '' };
+          dailyHistoryTasks = [];
+          goalsHistoryTasks = [];
+          localStorage.removeItem(KEY_DAILY_TIME_START);
+          saveState();
+          updateDisplay();
+      }
+  });
+
+  // СКАЧИВАНИЕ ТОЛЬКО ГЛОБАЛЬНЫХ ЦЕЛЕЙ (Файл JSON)
+  document.getElementById('btn-download-goals')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dataStr = localStorage.getItem(KEY_GOALS_HISTORY) || '[]';
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `global_goals_history_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  });
+
+  // СКАЧИВАНИЕ ТОЛЬКО БЫТОВЫХ ДЕЛ НА ДЕНЬ (Файл JSON)
+  document.getElementById('btn-download-dailies')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dataStr = localStorage.getItem(KEY_DAILY_HISTORY) || '[]';
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `daily_tasks_history_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  });
+
+  // Логика закрытия окон по крестикам и при клике на серый фон мимо карточки
+  document.querySelectorAll('.btn-close-modal').forEach(btn => {
+      btn.addEventListener('click', () => {
+          modalQueue.classList.add('hidden');
+          modalPriorities.classList.add('hidden');
+          modalHistory.classList.add('hidden');
+      });
+  });
+
+  window.addEventListener('click', (e) => {
+      if (e.target === modalQueue) modalQueue.classList.add('hidden');
+      if (e.target === modalPriorities) modalPriorities.classList.add('hidden');
+      if (e.target === modalHistory) modalHistory.classList.add('hidden');
+  });
+
+  // ЗАГРУЗКА И ВОССТАНОВЛЕНИЕ ДАННЫХ ИЗ ПАМЯТИ ПРИ СТАРТЕ СТРАНИЦЫ
+  const savedCurrentDaily = localStorage.getItem(KEY_CURRENT_DAILY);
+  const savedQueueDaily = localStorage.getItem(KEY_QUEUE_DAILY);
+  const savedGlobalPriorities = localStorage.getItem(KEY_GLOBAL_PRIORITIES);
+  const savedDailyHistory = localStorage.getItem(KEY_DAILY_HISTORY);
+  const savedGoalsHistory = localStorage.getItem(KEY_GOALS_HISTORY);
+
+  currentDailyTask = savedCurrentDaily !== null ? savedCurrentDaily : '';
+  queueDailyTasks = savedQueueDaily !== null ? JSON.parse(savedQueueDaily) : [];
+  globalPriorities = savedGlobalPriorities !== null ? JSON.parse(savedGlobalPriorities) : { high: '', medium: '', low: '' };
+  dailyHistoryTasks = savedDailyHistory !== null ? JSON.parse(savedDailyHistory) : [];
+  goalsHistoryTasks = savedGoalsHistory !== null ? JSON.parse(savedGoalsHistory) : [];
+
+
+
+  // ОЧИСТКА ИСКЛЮЧИТЕЛЬНО ЕЖЕДНЕВНЫХ ДЕЛ НА ДЕНЬ ПО КНОПКЕ ИЗ МОДАЛКИ
+  const btnClearDailiesOnly = document.getElementById('btn-clear-dailies-only');
+
+  if (btnClearDailiesOnly) {
+      btnClearDailiesOnly.addEventListener('click', (e) => {
+          e.stopPropagation(); // Защита от всплытия клика
+
+          if (confirm('Очистить только текущую задачу, очередь планов и историю дел на сегодня? 🐾')) {
+              // Обнуляем переменные бытового модуля
+              currentDailyTask = '';
+              queueDailyTasks = [];
+              dailyHistoryTasks = [];
+
+              // Чистим метку запущенного таймера
+              localStorage.removeItem('winter_focus_daily_time_start');
+
+              // Перезаписываем обновлённые массивы рутины в память телефона
+              localStorage.setItem('winter_focus_current_daily', currentDailyTask);
+              localStorage.setItem('winter_focus_queue_daily', JSON.stringify(queueDailyTasks));
+              localStorage.setItem('winter_focus_dailies_history', JSON.stringify(dailyHistoryTasks));
+
+              // Закрываем окно очереди планов
+              document.getElementById('modal-queue')?.classList.add('hidden');
+
+              // Мгновенно обновляем экраны
+              updateDisplay();
+          }
+      });
+  }
+
+
+
+
+
+  // Полный запуск интерфейса
+  updateDisplay();
+
+
+</script>
+
+</body>
+</html>

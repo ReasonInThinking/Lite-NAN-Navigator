@@ -913,41 +913,43 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 if (SpeechRecognition) {
     const recognition = new SpeechRecognition();
     recognition.lang = 'ru-RU';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    function fallbackToKeyboard() {
+        try { recognition.abort(); } catch(e) {}
+        voiceBtn.textContent = '🎙️';
+        // Если Google упал или выдал undefined — просто поднимаем FUTO на экран
+        setTimeout(() => { taskInput.focus(); }, 50);
+    }
 
     voiceBtn.addEventListener('click', () => {
-        // Проверяем наличие интернета в секунду нажатия
-        if (!navigator.onLine) {
-            console.log("Офлайн! Переключаем на клавиатуру FUTO.");
-            taskInput.focus(); // Принудительно вызываем клавиатуру FUTO на экран
+        if (voiceBtn.textContent === '🛑') {
+            fallbackToKeyboard();
             return;
         }
 
-        // Если интернет есть — запускаем стандартный ввод
         try {
-            if (voiceBtn.textContent === '🛑') {
-                recognition.abort();
-                voiceBtn.textContent = '🎙️';
-            } else {
-                recognition.start();
-                voiceBtn.textContent = '🛑';
-            }
+            recognition.start();
+            voiceBtn.textContent = '🛑';
         } catch (e) {
-            recognition.abort();
-            voiceBtn.textContent = '🎙️';
+            fallbackToKeyboard();
         }
     });
 
     recognition.onresult = (event) => {
-        taskInput.value = event.results.transcript;
+        // Защита от undefined в результатах сети
+        if (event && event.results && event.results[0] && event.results[0][0]) {
+            taskInput.value = event.results[0][0].transcript;
+        } else {
+            fallbackToKeyboard();
+        }
         voiceBtn.textContent = '🎙️';
     };
 
     recognition.onerror = (event) => {
-        // Если во время записи интернет отвалился или завис — аварийно открываем клавиатуру
-        console.log("Ошибка сети во время диктовки. Вызываем клавиатуру.");
-        recognition.abort();
-        voiceBtn.textContent = '🎙️';
-        taskInput.focus(); // Поднимаем FUTO на экран
+        // Любая ошибка (сеть, undefined, блокировка) — сразу переключаем на клавиатуру
+        fallbackToKeyboard();
     };
 
     recognition.onend = () => {

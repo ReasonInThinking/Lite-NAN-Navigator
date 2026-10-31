@@ -4,9 +4,9 @@
   "display": "standalone",
   "name": "Lite Navigator",
   "orientation": "any",
-  "scope": "/",
+  "scope": "/Lite-NAN-Navigator/",
   "short_name": "LiteNAN",
-  "start_url": "/",
+  "start_url": "/Lite-NAN-Navigator/",
   "theme_color": "#ffffff",
   "lang": "ru",
   "icons": [

@@ -436,7 +436,19 @@
     </div>
 
 
+
+      
 <script>
+// Регистрируем Service Worker для полной автономности в оффлайне
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/Lite-NAN-Navigator/sw.js')
+      .then(reg => console.log('Оффлайн-режим успешно активирован!'))
+      .catch(err => console.log('Ошибка активации оффлайна:', err));
+  });
+}
+
+    
   // 1. Поиск элементов управления главного экрана
   const setupView = document.getElementById('setup-view');
   const focusView = document.getElementById('focus-view');

@@ -400,46 +400,10 @@
   </header>
 
 
-        <!-- ЕДИНСТВЕННЫЙ ЦЕНТРАЛЬНЫЙ БЛОК -->
-        <main class="main-focus-card">
-            <!-- Интерфейс ввода (Показывается если текущей задачи нет) -->
-            <div id="setup-view" style="display: flex; flex-direction: column; gap: 16px;">
-                <div class="card-tag">Новый шаг ⚡</div>
-                <div class="task-display-text" style="min-height: auto;">Какая у нас главная задача?</div>
-               <input type="text" id="main-task-input" class="mobile-input" lang="ru" inputmode="text" placeholder="Напиши задачу на сейчас...">
 
-                <button class="btn-action" id="main-start-btn" style="background: var(--accent-yellow); color: #090a0f;">Поехали! Начать 🚀</button>
-            </div>
-
-            <!-- Интерфейс трекера фокуса (Показывается когда задача запущена) -->
-            <div id="focus-view" style="display: none; flex-direction: column; gap: 16px;">
-                <div class="card-tag" style="color: var(--accent-red);">В фокусе 🔥</div>
-                <div class="task-display-text" id="focus-task-text">...</div>
-                <button class="btn-action" id="main-complete-btn">Готово! Что дальше?
-                  <svg viewBox="0 0 24 24" style="width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; margin-left: 8px; display: inline-block; vertical-align: middle;">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-
-                </button>
-            </div>
-        </main>
     </div>
 
-    <!-- ОКНО ОЧЕРЕДИ БУДУЩИХ ЗАДАЧ (Выезжает снизу) -->
-    <div id="modal-queue" class="modal-overlay hidden">
-        <div class="modal-sheet">
-            <div class="modal-header">
-                <h3>Очередь планов 🐾</h3>
-                <button class="btn-close-modal">✕</button>
-            </div>
-            <!-- Быстрое добавление будущей задачи прямо внутри модалки -->
-            <div style="display: flex; gap: 8px; width: 100%;">
-                <input type="text" id="modal-queue-input" class="mobile-input" style="height: 46px;" placeholder="Добавить задачу в очередь...">
-                <button class="btn-action" id="modal-queue-add-btn" style="width: 46px; height: 46px;">+</button>
-            </div>
-            <div class="list-container" id="modal-queue-list"></div>
-            <div id="modal-queue-empty" class="empty-text">Очередь планов пуста.</div>
-        </div>
-    </div>
+
 
     <!-- ОКНО ВЫПОЛНЕННЫХ ЗАДАЧ (Выезжает снизу) -->
     <div id="modal-history" class="modal-overlay hidden">
@@ -1049,20 +1013,24 @@ if (SpeechRecognition) {
     setupVoiceButton('voice-btn', 'main-task-input');
     setupVoiceButton('modal-queue-voice-btn', 'modal-queue-input');
 
-    recognition.onresult = (event) => {
-        if (event && event.results && event.results[0] && event.results[0][0]) {
-            if (currentInputTarget) {
-                currentInputTarget.value = event.results[0][0].transcript;
-            }
-        } else {
-            fallbackToKeyboard();
-        }
-        if (currentButtonTarget) restoreButtonText(currentButtonTarget);
-    };
+    recognition.onerror = (event) => {
+    // Выводим реальную техническую ошибку в консоль браузера (F12)
+    console.error("Критическая ошибка микрофона на ПК/смартфоне: ", event.error);
 
-    recognition.onerror = () => {
-        fallbackToKeyboard();
-    };
+    // Если ошибка 'not-allowed' — значит, браузер заблокировал доступ на уровне ОС
+    // If 'no-speech' — микрофон вас просто не услышал
+    if (event.error === 'no-speech') {
+        console.log("Движок не услышал голос. Попробуйте говорить громче.");
+    }
+
+    fallbackToKeyboard();
+};
+
+recognition.onend = () => {
+    console.log("Поток распознавания речи завершен.");
+    if (currentButtonTarget) restoreButtonText(currentButtonTarget);
+};
+
 
     recognition.onend = () => {
         if (currentButtonTarget) restoreButtonText(currentButtonTarget);

@@ -12,7 +12,7 @@
 
 <meta name="theme-color" content="#090a0f">
 
- 
+
 
 
 
@@ -157,6 +157,15 @@
         .btn-svg-delete svg { stroke: var(--accent-red); }
 
         .empty-text { text-align: center; color: var(--text-muted); font-size: 1.1rem; padding: 40px 0; }
+
+
+        .mobile-next {
+          display: block;
+          width: 100%;
+        }
+
+
+
     </style>
 
 
@@ -268,9 +277,11 @@
 </div>
 
            <div style="display: flex; gap: 10px; width: 100%; align-items: center;">
-                  <button id="modal-queue-voice-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 5px; height: 50px; display: flex; align-items: center; justify-content: center;">ВКЛ МИКРО 🎙️</button>
-    <input type="text" id="modal-queue-input" class="mobile-input" style="height: 50px; flex: 1;" placeholder="Добавить в очередь дня...">
- 
+                  <button id="modal-queue-voice-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 5px; height: 50px; display: flex; align-items: center; color: silver; justify-content: center;">ВКЛ МИКРО 🎙️</button>
+              </div>
+               <div style="display: flex; gap: 10px; width: 100%; align-items: center;">
+    <input type="text" id="modal-queue-input" class="mobile-input mobile-next" style="height: 50px; flex: 1;" placeholder="Добавить в очередь дня...">
+
     <button class="btn-action" id="modal-queue-add-btn" style="width: 50px; height: 50px; flex-shrink: 0;">+</button>
 </div>
 
@@ -404,7 +415,11 @@
             <div id="focus-view" style="display: none; flex-direction: column; gap: 16px;">
                 <div class="card-tag" style="color: var(--accent-red);">В фокусе 🔥</div>
                 <div class="task-display-text" id="focus-task-text">...</div>
-                <button class="btn-action" id="main-complete-btn">Готово! Что дальше? ✨</button>
+                <button class="btn-action" id="main-complete-btn">Готово! Что дальше?
+                  <svg viewBox="0 0 24 24" style="width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; margin-left: 8px; display: inline-block; vertical-align: middle;">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+
+                </button>
             </div>
         </main>
     </div>
@@ -440,7 +455,7 @@
 
 
 
-      
+
 <script>
 // Регистрируем Service Worker для полной автономности в оффлайне
 if ('serviceWorker' in navigator) {
@@ -451,7 +466,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-    
+
   // 1. Поиск элементов управления главного экрана
   const setupView = document.getElementById('setup-view');
   const focusView = document.getElementById('focus-view');
@@ -536,16 +551,28 @@ if ('serviceWorker' in navigator) {
       return s > 0 ? `${m} мин ${s} сек` : `${m} мин`;
   }
 
-  // Посекундный перерасчёт времени на основе системных меток Timestamp
+  // Посекундный перерасчёт времени с учётом накопленных секунд для каждой задачи
   function refreshTimerDigits() {
       const startTime = localStorage.getItem(KEY_DAILY_TIME_START);
+
+      // Достаем из локального сейфа секунды, которые эта задача набрала ранее
+      const savedTimes = JSON.parse(localStorage.getItem('LITE_NAV_TASKS_TIME') || '{}');
+      const previouslyAccumulated = savedTimes[currentDailyTask] || 0;
+
       if (startTime !== null) {
-          totalSeconds = Math.floor((Date.now() - parseInt(startTime, 10)) / 1000);
+          // Вычисляем, сколько секунд набежало в текущей сессии
+          const currentSessionSeconds = Math.floor((Date.now() - parseInt(startTime, 10)) / 1000);
+
+          // Общий итог = текущая сессия + прошлый накопленный багаж
+          totalSeconds = currentSessionSeconds + previouslyAccumulated;
       } else {
-          totalSeconds = 0;
+          // Если задача активна, но таймер стоит — просто показываем её сохранённый прогресс
+          totalSeconds = previouslyAccumulated;
       }
+
       if (dailyTimerDigits) dailyTimerDigits.textContent = formatTimeDigits(totalSeconds);
   }
+
 
   // Логика переключения режимов на главном экране
   function updateDisplayMain() {
@@ -674,22 +701,58 @@ if ('serviceWorker' in navigator) {
               el.className = 'list-item';
               el.innerHTML = `<span>${task}</span><span style="color: var(--accent-yellow); font-size: 0.85rem; font-weight:bold;">Начать сейчас ⚡</span>`;
               el.addEventListener('click', () => {
-                  if (currentDailyTask !== '') queueDailyTasks.unshift(currentDailyTask);
-                  currentDailyTask = queueDailyTasks[index];
-                  queueDailyTasks.splice(index, 1);
+              const nextTask = queueDailyTasks[index];
 
-                  // При переключении сбрасываем старую метку времени, чтобы пошёл чистый отсчёт новой задачи
-                  localStorage.removeItem(KEY_DAILY_TIME_START);
+              // --- СОХРАНЯЕМ ВРЕМЯ СТАРОЙ ЗАДАЧИ ПЕРЕД УХОДОМ ---
+              if (currentDailyTask !== '' && localStorage.getItem(KEY_DAILY_TIME_START) !== null) {
+                  const startTime = parseInt(localStorage.getItem(KEY_DAILY_TIME_START), 10);
+                  const currentSessionSeconds = Math.floor((Date.now() - startTime) / 1000);
 
-                  modalQueue.classList.add('hidden');
-                  saveState();
-                  updateDisplay();
-              });
-              modalQueueList.appendChild(el);
+                  const savedTimes = JSON.parse(localStorage.getItem('LITE_NAV_TASKS_TIME') || '{}');
+                  const previouslyAccumulated = savedTimes[currentDailyTask] || 0;
+
+                  // Суммируем прошлый прогресс и секунды текущей сессии
+                  savedTimes[currentDailyTask] = previouslyAccumulated + currentSessionSeconds;
+                  localStorage.setItem('LITE_NAV_TASKS_TIME', JSON.stringify(savedTimes));
+              }
+              // --------------------------------------------------
+
+              // Возвращаем старую задачу в начало очереди
+              if (currentDailyTask !== '') {
+                  queueDailyTasks.unshift(currentDailyTask);
+              }
+
+              // Находим её новое положение в сдвинутом массиве
+              const targetIndex = queueDailyTasks.indexOf(nextTask);
+
+              // Переключаемся на новую задачу
+              currentDailyTask = nextTask;
+              if (targetIndex !== -1) {
+                  queueDailyTasks.splice(targetIndex, 1);
+              }
+
+              // Жестко глушим старый интервал тиканья часов
+              if (timerInterval) {
+                  clearInterval(timerInterval);
+                  timerInterval = null;
+              }
+
+              // Запускаем новый отсчет Timestamp для свежей задачи с текущей миллисекунды
+              localStorage.setItem(KEY_DAILY_TIME_START, Date.now().toString());
+
+              // Принудительно обновляем цифры на экране (они сами подтянут время новой задачи из сейфа)
+              refreshTimerDigits();
+
+              modalQueue.classList.add('hidden');
+              saveState();
+              updateDisplay();
           });
-      } else {
-          modalQueueEmpty.style.display = 'block';
-      }
+          modalQueueList.appendChild(el);
+      });
+  } else {
+      modalQueueEmpty.style.display = 'block';
+  }
+
 
       // 2. Список глобальных целей
       Object.keys(globalPriorities).forEach(key => {
@@ -742,6 +805,7 @@ if ('serviceWorker' in navigator) {
   // ==================== БЛОК 3.3 (ЧАСТЬ 2 ИЗ 2) ====================
   // ОБРАБОТКА ДЕЙСТВИЙ ГЛАВНОГО ЭКРАНА (Ежедневные дела на сегодня)
   mainStartBtn.addEventListener('click', () => {
+      playStartSound();
       const text = mainTaskInput.value.trim();
       if (text === '') return;
       currentDailyTask = text;
@@ -757,6 +821,7 @@ if ('serviceWorker' in navigator) {
   mainTaskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') mainStartBtn.click(); });
 
   mainCompleteBtn.addEventListener('click', () => {
+    playCompleteSound();
       if (currentDailyTask === '') return;
 
       // Фиксируем, сколько секунд натикало по системным часам
@@ -925,7 +990,7 @@ if ('serviceWorker' in navigator) {
 
 
 
-    
+
 const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
 
 if (SpeechRecognition) {
@@ -957,7 +1022,7 @@ if (SpeechRecognition) {
     function setupVoiceButton(btnId, inputId) {
         const btn = document.getElementById(btnId);
         const input = document.getElementById(inputId);
-        
+
         if (!btn || !input) return;
 
         btn.addEventListener('click', () => {
@@ -1006,6 +1071,83 @@ if (SpeechRecognition) {
     // Кнопки никогда не скрываются, чтобы всегда служить триггером для оффлайн-клавиатуры FUTO
     console.log("SpeechRecognition не поддерживается устройством. Кнопки работают для вызова клавиатуры.");
 }
+
+
+
+
+
+// Универсальный оффлайн-звук для ПК и смартфонов
+function playStartSound() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+
+        const ctx = new AudioContext();
+
+        // ЗАЩИТА ДЛЯ ПК И СМАРТФОНОВ: если аудио-движок спит, принудительно будим его
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine'; // Мягкая волна звука
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // Стартовая нота (Ре)
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.08); // Короткий динамичный взлет вверх
+
+        gain.gain.setValueAtTime(0.15, ctx.currentTime); // Оптимальная громкость
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1); // Мягкое затухание
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1); // Звук длится всего 100 миллисекунд (четкий клик)
+    } catch (e) {
+        console.log("Звук заблокирован системой устройства:", e);
+    }
+}
+
+// Универсальный оффлайн-звук победы для ПК и смартфонов
+function playCompleteSound() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+
+        const ctx = new AudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const now = ctx.currentTime;
+
+        // Двойной победный клик (Нота До, затем более высокая нота Ми)
+        function playTone(freq, start, duration) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, start);
+
+            gain.gain.setValueAtTime(0.12, start);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(start);
+            osc.stop(start + duration);
+        }
+
+        // Первый бип (низкий)
+        playTone(523.25, now, 0.08);
+        // Второй бип через 80 миллисекунд (высокий, победный)
+        playTone(659.25, now + 0.08, 0.15);
+
+    } catch (e) {
+        console.log("Звук заблокирован системой устройства:", e);
+    }
+}
+
 
 
 

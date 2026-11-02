@@ -118,7 +118,7 @@
 
         .modal-sheet {
             width: 100%; max-width: 460px; background: #11121a; border: 2.5px solid var(--border-color);
-            border-radius: 36px; padding: 32px; display: flex; flex-direction: column; gap: 24px;
+            border-radius: 36px; padding: 15px; display: flex; flex-direction: column; gap: 24px;
             max-height: 85vh; box-shadow: 0 30px 60px rgba(0,0,0,0.7);
         }
 
@@ -127,7 +127,7 @@
         .btn-close-modal { background: none; border: none; color: var(--text-muted); font-size: 1.6rem; cursor: pointer; padding: 4px 8px; }
 
         /* Зона списков со скроллом */
-        .list-container { display: flex; flex-direction: column; gap: 14px; width: 100%; overflow-y: auto; max-height: 45vh; padding-right: 6px; }
+        .list-container { display: flex; flex-direction: column; gap: 14px; width: 100%; overflow-y: auto; max-height: 45vh; padding-right: 12px; }
         .list-container::-webkit-scrollbar { width: 6px; }
         .list-container::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
 
@@ -142,7 +142,7 @@
         .list-item.border-medium { border-left: 5px solid var(--accent-yellow); }
         .list-item.border-low { border-left: 5px solid var(--accent-blue); }
 
-        .list-item-done { color: var(--text-muted); text-decoration: line-through; }
+        .list-item-done { color: var(--text-muted);  }
 
         /* Внутренние SVG-кнопки управления внутри плашек целей */
         .btn-svg-action {
@@ -347,15 +347,36 @@
 
         <div class="list-container" style="max-height: 70vh; display: flex; flex-direction: column; gap: 20px;">
 
-            <!-- СТЕК А: ВЫПОЛНЕННЫЕ ГЛОБАЛЬНЫЕ ЦЕЛИ -->
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
-                    <span class="priority-label p-medium" style="color: var(--accent-yellow); background: rgba(241, 196, 15, 0.1);">Глобальные цели🎯</span>
-                    <button class="btn-action btn-yellow" id="btn-download-goals" style="height: 34px; width: auto; padding: 0 12px; font-size: 0.85rem; border-radius: 10px;">Скачать JSON 📥</button>
-                </div>
-                <div id="modal-goals-history-list" class="list-container" style="max-height: 25vh; overflow-y: auto;"></div>
-                <div id="modal-goals-history-empty" class="empty-text" style="padding: 15px 0; font-size: 0.95rem;">Выполненных долгосрочных целей пока нет.</div>
-            </div>
+          <!-- СТЕК А: ВЫПОЛНЕННЫЕ ГЛОБАЛЬНЫЕ ЦЕЛИ -->
+          <!-- СТЕК А: ВЫПОЛНЕННЫЕ ГЛОБАЛЬНЫЕ ЦЕЛИ (СПОЙЛЕР) -->
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+      <!-- Заголовок-переключатель. Клик по нему раскрывает или скрывает спойлер -->
+      <div onclick="toggleGoalsSpoiler()" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; cursor: pointer; user-select: none;">
+          <span class="priority-label p-medium" style="color: var(--accent-yellow); background: rgba(241, 196, 15, 0.1);">Глобальные цели🎯</span>
+          <span id="goals-spoiler-arrow" style="color: var(--accent-yellow); font-size: 0.85rem; transition: transform 0.2s;">Раскрыть ▼</span>
+      </div>
+
+      <!-- Скрытый контейнер с кнопками и списком задач (по умолчанию display: none) -->
+      <div id="goals-spoiler-content" style="display: none; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; gap: 8px; width: 100%; justify-content: flex-end;">
+                  <!-- Кнопка импорта -->
+                  <button class="btn-action btn-yellow" onclick="document.getElementById('file-upload-goals').click(); return false;" style="height: 34px; width: auto; padding: 0 12px; font-size: 0.85rem; border-radius: 10px; background: transparent; border: 1px solid var(--accent-yellow); color: var(--accent-yellow);">Импорт 📤</button>
+
+                  <!-- Скрытый инпут -->
+                  <input type="file" id="file-upload-goals" accept=".txt" onchange="handleDirectGoalsImport(this)" style="display: none;">
+
+                  <!-- Кнопка экспорта -->
+                  <button class="btn-action btn-yellow" id="btn-download-goals" onclick="handleDirectGoalsExport(); return false;" style="height: 34px; width: auto; padding: 0 12px; font-size: 0.85rem; border-radius: 10px;">Экспорт 📥</button>
+              </div>
+          </div>
+          <div id="modal-goals-history-list" class="list-container" style="max-height: 45vh; overflow-y: auto;"></div>
+          <div id="modal-goals-history-empty" class="empty-text" style="padding: 15px 0; font-size: 0.95rem;">Выполненных долгосрочных целей пока нет.</div>
+      </div>
+  </div>
+
+
+
 
             <!-- СТЕК Б: ВЫПОЛНЕННЫЕ ДЕЛА НА ДЕНЬ (С АВТО-СОРТИРОВКОЙ ПО ВРЕМЕНИ) -->
 <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
@@ -587,85 +608,90 @@ if ('serviceWorker' in navigator) {
 
   // 2. РЕНДЕРИНГ РАЗДЕЛЬНЫХ АРХИВОВ ДОСТИЖЕНИЙ (Кубок)
   function renderHistoryList() {
-      const modalGoalsHistoryList = document.getElementById('modal-goals-history-list');
-      const modalGoalsHistoryEmpty = document.getElementById('modal-goals-history-empty');
-      const modalDailiesHistoryList = document.getElementById('modal-dailies-history-list');
-      const modalDailiesHistoryEmpty = document.getElementById('modal-dailies-history-empty');
+        const modalGoalsHistoryList = document.getElementById('modal-goals-history-list');
+        const modalGoalsHistoryEmpty = document.getElementById('modal-goals-history-empty');
+        const modalDailiesHistoryList = document.getElementById('modal-dailies-history-list');
+        const modalDailiesHistoryEmpty = document.getElementById('modal-dailies-history-empty');
 
-      const btnDownloadGoals = document.getElementById('btn-download-goals');
-      const btnDownloadDailies = document.getElementById('btn-download-dailies');
+        const btnDownloadGoals = document.getElementById('btn-download-goals');
+        const btnUploadGoalsTrigger = document.getElementById('btn-upload-goals-trigger');
+        const btnDownloadDailies = document.getElementById('btn-download-dailies');
 
-      if (!modalGoalsHistoryList || !modalDailiesHistoryList) return;
+        if (!modalGoalsHistoryList || !modalDailiesHistoryList) return;
 
-      // --- СТЕК А: Выполненные глобальные цели ---
-      modalGoalsHistoryList.innerHTML = '';
-      if (goalsHistoryTasks.length > 0) {
-          if (modalGoalsHistoryEmpty) modalGoalsHistoryEmpty.style.display = 'none';
-          if (btnDownloadGoals) btnDownloadGoals.style.display = 'flex';
-          goalsHistoryTasks.forEach((item, index) => {
-              const el = document.createElement('div');
-              el.className = `list-item list-item-done border-${item.priority}`;
-              el.innerHTML = `
-                  <span style="flex: 1; text-align: left;">${item.text}</span>
-                  <button class="btn-svg-action btn-svg-delete" title="Удалить цель">
-                      <svg viewBox="0 0 24 24" style="pointer-events: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  </button>
-              `;
+        // --- СТЕК А: Выполненные глобальные цели ---
+        modalGoalsHistoryList.innerHTML = '';
+        if (goalsHistoryTasks.length > 0) {
+            if (modalGoalsHistoryEmpty) modalGoalsHistoryEmpty.style.display = 'none';
+            if (btnDownloadGoals) btnDownloadGoals.style.display = 'inline-block';
+            goalsHistoryTasks.forEach((item, index) => {
+                const el = document.createElement('div');
+                el.className = `list-item list-item-done border-${item.priority}`;
+                el.innerHTML = `
+                    <span style="flex: 1; text-align: left;">${item.text}</span>
+                    <button class="btn-svg-action btn-svg-delete" title="Удалить цель">
+                        <svg viewBox="0 0 24 24" style="pointer-events: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                `;
 
-              el.querySelector('.btn-svg-delete').addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  goalsHistoryTasks.splice(index, 1);
-                  saveState();
-                  updateDisplay();
-              });
-              modalGoalsHistoryList.appendChild(el);
-          });
-      } else {
-          if (modalGoalsHistoryEmpty) modalGoalsHistoryEmpty.style.display = 'block';
-          if (btnDownloadGoals) btnDownloadGoals.style.display = 'none';
-      }
+                el.querySelector('.btn-svg-delete').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    goalsHistoryTasks.splice(index, 1);
+                    saveState();
+                    updateDisplay();
+                });
+                modalGoalsHistoryList.appendChild(el);
+            });
+        } else {
+            if (modalGoalsHistoryEmpty) modalGoalsHistoryEmpty.style.display = 'block';
+            if (btnDownloadGoals) btnDownloadGoals.style.display = 'none';
+        }
 
-      // --- СТЕК Б: Выполненные дела на день (УМНАЯ СОРТИРОВКА ПО ЗАТРАТАМ ВРЕМЕНИ) ---
-      modalDailiesHistoryList.innerHTML = '';
-      if (dailyHistoryTasks.length > 0) {
-          if (modalDailiesHistoryEmpty) modalDailiesHistoryEmpty.style.display = 'none';
-          if (btnDownloadDailies) btnDownloadDailies.style.display = 'flex';
+        // Кнопка импорта должна оставаться доступной всегда, чтобы загружать цели в любое время
+        if (btnUploadGoalsTrigger) btnUploadGoalsTrigger.style.display = 'inline-block';
 
-          // Создаём копию массива и сортируем её: от самого БОЛЬШОГО времени к меньшему
-          const sortedDailies = [...dailyHistoryTasks].sort((a, b) => b.time - a.time);
+        // --- СТЕК Б: Выполненные дела на день (УМНАЯ СОРТИРОВКА ПО ЗАТРАТАМ ВРЕМЕНИ) ---
+        modalDailiesHistoryList.innerHTML = '';
+        if (dailyHistoryTasks.length > 0) {
+            if (modalDailiesHistoryEmpty) modalDailiesHistoryEmpty.style.display = 'none';
+            if (btnDownloadDailies) btnDownloadDailies.style.display = 'flex';
 
-          sortedDailies.forEach((taskObj) => {
-              const el = document.createElement('div');
-              el.className = 'list-item list-item-done';
-              el.innerHTML = `
-                  <div style="display: flex; flex-direction: column; gap: 4px; text-align: left; flex: 1;">
-                      <span style="font-weight: 700;">${taskObj.text}</span>
-                      <span style="font-size: 0.85rem; color: var(--accent-yellow); font-weight: 900;">⏱️ Времени ушло: ${formatReadableTime(taskObj.time)}</span>
-                  </div>
-                  <button class="btn-svg-action btn-svg-delete" title="Удалить задачу">
-                      <svg viewBox="0 0 24 24" style="pointer-events: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  </button>
-              `;
+            // Создаём копию массива и сортируем её: от самого БОЛЬШОГО времени к меньшему
+            const sortedDailies = [...dailyHistoryTasks].sort((a, b) => b.time - a.time);
 
-              // Поиск оригинального индекса в исходном массиве для точечного удаления
-              el.querySelector('.btn-svg-delete').addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  const origIndex = dailyHistoryTasks.findIndex(t => t.text === taskObj.text && t.time === taskObj.time);
-                  if (origIndex !== -1) {
-                      dailyHistoryTasks.splice(origIndex, 1);
-                  }
-                  saveState();
-                  updateDisplay();
-              });
-              modalDailiesHistoryList.appendChild(el);
-          });
-      } else {
-          if (modalDailiesHistoryEmpty) modalDailiesHistoryEmpty.style.display = 'block';
-          if (btnDownloadDailies) btnDownloadDailies.style.display = 'none';
-      }
-  }
+            sortedDailies.forEach((taskObj) => {
+                const el = document.createElement('div');
+                el.className = 'list-item list-item-done';
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 4px; text-align: left; flex: 1;">
+                        <span style="font-weight: 700;">${taskObj.text}</span>
+                        <span style="font-size: 0.85rem; color: var(--accent-yellow); font-weight: 900;">⏱️ Времени ушло: ${formatReadableTime(taskObj.time)}</span>
+                    </div>
+                    <button class="btn-svg-action btn-svg-delete" title="Удалить задачу">
+                        <svg viewBox="0 0 24 24" style="pointer-events: none;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                `;
 
-  window.renderHistoryList = renderHistoryList;
+                // Поиск оригинального индекса в исходном массиве для точечного удаления
+                el.querySelector('.btn-svg-delete').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const origIndex = dailyHistoryTasks.findIndex(t => t.text === taskObj.text && t.time === taskObj.time);
+                    if (origIndex !== -1) {
+                        dailyHistoryTasks.splice(origIndex, 1);
+                    }
+                    saveState();
+                    updateDisplay();
+                });
+                modalDailiesHistoryList.appendChild(el);
+            });
+        } else {
+            if (modalDailiesHistoryEmpty) modalDailiesHistoryEmpty.style.display = 'block';
+            if (btnDownloadDailies) btnDownloadDailies.style.display = 'none';
+        }
+    }
+
+    window.renderHistoryList = renderHistoryList;
+
 
   // Главная функция рендеринга всех окон
   function updateDisplay() {
@@ -875,35 +901,7 @@ if ('serviceWorker' in navigator) {
       }
   });
 
-  // СКАЧИВАНИЕ ТОЛЬКО ГЛОБАЛЬНЫХ ЦЕЛЕЙ (Файл JSON)
-  document.getElementById('btn-download-goals')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const dataStr = localStorage.getItem(KEY_GOALS_HISTORY) || '[]';
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `global_goals_history_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-  });
 
-  // СКАЧИВАНИЕ ТОЛЬКО БЫТОВЫХ ДЕЛ НА ДЕНЬ (Файл JSON)
-  document.getElementById('btn-download-dailies')?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const dataStr = localStorage.getItem(KEY_DAILY_HISTORY) || '[]';
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `daily_tasks_history_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-  });
 
   // Логика закрытия окон по крестикам и при клике на серый фон мимо карточки
   document.querySelectorAll('.btn-close-modal').forEach(btn => {
@@ -971,108 +969,102 @@ if ('serviceWorker' in navigator) {
 
 
 
-// Проверяем поддержку и тип устройства
-const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
 
-// Глобальные переменные для фиксации активных элементов
-let currentInputTarget = null;
-let currentButtonTarget = null;
+  // 1. Проверяем устройство: мобилка или ПК
+  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-function restoreButtonText(btn) {
-    if (!btn) return;
-    btn.innerHTML = 'ВКЛ МИКРО 🎙️';
-}
+  // Переменные, которые помнят активные элементы
+  let currentInputTarget = null;
+  let currentButtonTarget = null;
 
-function fallbackToKeyboard() {
-    if (window.globalRecognition) { 
-        try { window.globalRecognition.abort(); } catch(e) {} 
-    }
-    if (currentButtonTarget) restoreButtonText(currentButtonTarget);
-    if (currentInputTarget) {
-        const input = currentInputTarget;
-        setTimeout(() => { input.focus(); }, 50);
-    }
-}
+  // Функция возвращает текст "ВКЛ МИКРО 🎙️" для ОБЕИХ кнопок
+  function restoreButtonText(btn) {
+      if (!btn) return;
+      btn.innerHTML = 'ВКЛ МИКРО 🎙️';
+  }
 
-// 1. ЕСЛИ ЭТО ПК — СРАЗУ ВЫХОДИМ (Кнопки уже скрыты через CSS)
-if (!isMobileDevice) {
-    console.log("Режим ПК: голосовые скрипты отключены.");
-} 
-// 2. ЕСЛИ ЭТО МОБИЛКА — НАСТРАИВАЕМ РОВНО ОДИН РАЗ
-else if (SpeechRecognition && isMobileDevice) {
-    
-    // Создаем движок строго один раз, если его еще нет
-    if (!window.globalRecognition) {
-        window.globalRecognition = new RecognitionInstance();
-    }
+  function fallbackToKeyboard() {
+      if (window.globalRecognition) { try { window.globalRecognition.abort(); } catch(e) {} }
+      if (currentButtonTarget) restoreButtonText(currentButtonTarget);
+      if (currentInputTarget) {
+          const input = currentInputTarget;
+          setTimeout(() => { input.focus(); }, 50);
+      }
+  }
 
-    function RecognitionInstance() {
-        const rec = new SpeechRecognition();
-        rec.lang = 'ru-RU';
-        rec.continuous = false;
-        rec.interimResults = false;
+  // 2. ЕСЛИ ЭТО ПК — НАМЕРТВО СКРЫВАЕМ МИКРОФОНЫ, ЧТОБЫ ИЗБЕЖАТЬ ВЫЛЕТОВ
+  if (!isMobileDevice) {
+      console.log("Режим ПК: скрываем значки микрофонов.");
+      if (document.getElementById('voice-btn')) document.getElementById('voice-btn').style.display = 'none';
+      if (document.getElementById('modal-queue-voice-btn')) document.getElementById('modal-queue-voice-btn').style.display = 'none';
+  }
+  // 3. ЕСЛИ ЭТО МОБИЛКА И ЕСТЬ ПОДДЕРЖКА ГОЛОСА — ВКЛЮЧАЕМ НАШУ РАБОЧУЮ СХЕМУ
+  else if (SpeechRecognition && isMobileDevice) {
 
-        rec.onresult = (event) => {
-            if (event && event.results && event.results[0] && event.results[0][0]) {
-                if (currentInputTarget) {
-                    currentInputTarget.value = event.results[0][0].transcript;
-                }
-            } else {
-                fallbackToKeyboard();
-            }
-            if (currentButtonTarget) restoreButtonText(currentButtonTarget);
-        };
+      if (!window.globalRecognition) {
+          window.globalRecognition = new SpeechRecognition();
+          window.globalRecognition.lang = 'ru-RU';
+          window.globalRecognition.continuous = false;
+          window.globalRecognition.interimResults = false;
 
-        rec.onerror = (event) => {
-            console.error("Ошибка микрофона на мобильном: ", event.error);
-            fallbackToKeyboard(); // При любом лаге сети мгновенно поднимает FUTO
-        };
+          window.globalRecognition.onresult = (event) => {
+              if (event && event.results && event.results[0] && event.results[0][0]) {
+                  if (currentInputTarget) {
+                      currentInputTarget.value = event.results[0][0].transcript;
+                  }
+              } else {
+                  fallbackToKeyboard();
+              }
+              if (currentButtonTarget) restoreButtonText(currentButtonTarget);
+          };
 
-        rec.onend = () => {
-            if (currentButtonTarget) restoreButtonText(currentButtonTarget);
-        };
+          window.globalRecognition.onerror = (event) => {
+              console.error("Ошибка микрофона на мобильном: ", event.error);
+              fallbackToKeyboard(); // При лаге сети мгновенно вызовет клавиатуру FUTO
+          };
 
-        return rec;
-    }
+          window.globalRecognition.onend = () => {
+              if (currentButtonTarget) restoreButtonText(currentButtonTarget);
+          };
+      }
 
-    // Чистая функция привязки событий (БЕЗ ДУБЛИРОВАНИЯ)
-    function setupMobileVoiceButton(btnId, inputId) {
-        const btn = document.getElementById(btnId);
-        const input = document.getElementById(inputId);
-        if (!btn || !input) return;
+      // Настройка кнопок для мобильных устройств
+      function setupMobileVoiceButton(btnId, inputId) {
+          const btn = document.getElementById(btnId);
+          const input = document.getElementById(inputId);
+          if (!btn || !input) return;
 
-        // Удаляем старые обработчики, если они вдруг зависли в памяти PWA
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
+          btn.addEventListener('click', (e) => {
+              if (btnId === 'modal-queue-voice-btn') {
+                  e.stopPropagation(); // Защита updateDisplay в очереди
+              }
 
-        newBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (btnId === 'modal-queue-voice-btn') {
-                e.stopPropagation(); // Защита от конфликта с updateDisplay в очереди
-            }
+              if (btn.textContent.includes('🛑')) {
+                  fallbackToKeyboard();
+                  return;
+              }
 
-            if (newBtn.textContent.includes('🛑')) {
-                fallbackToKeyboard();
-                return;
-            }
+              currentButtonTarget = btn;
+              currentInputTarget = input;
 
-            currentButtonTarget = newBtn;
-            currentInputTarget = input;
+              try {
+                  window.globalRecognition.start();
+                  btn.innerHTML = 'СТОП 🛑';
+              } catch (e) {
+                  fallbackToKeyboard();
+              }
+          });
+      }
 
-            try {
-                window.globalRecognition.start();
-                newBtn.innerHTML = 'СТОП 🛑'; 
-            } catch (err) {
-                fallbackToKeyboard();
-            }
-        });
-    }
+      setupMobileVoiceButton('voice-btn', 'main-task-input');
+      setupMobileVoiceButton('modal-queue-voice-btn', 'modal-queue-input');
+  } else {
+      // Резервный случай: если на мобилке нет встроенного SpeechRecognition
+      if (document.getElementById('voice-btn')) document.getElementById('voice-btn').style.display = 'none';
+      if (document.getElementById('modal-queue-voice-btn')) document.getElementById('modal-queue-voice-btn').style.display = 'none';
+  }
 
-    // Запускаем настройку кнопок строго по их уникальным ID
-    setupMobileVoiceButton('voice-btn', 'main-task-input');
-    setupMobileVoiceButton('modal-queue-voice-btn', 'modal-queue-input');
-}
 
 
 
@@ -1149,6 +1141,108 @@ function playCompleteSound() {
 }
 
 
+// 1. ЭКСПОРТ: Скачивает цели в чистом текстовом формате (.txt)
+document.getElementById('btn-download-goals')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+
+    const list = (typeof goalsHistoryTasks !== 'undefined') ? goalsHistoryTasks : [];
+    let textContent = "";
+
+    list.forEach((item) => {
+        if (item && item.text) {
+            const priority = item.priority || 'medium';
+            textContent += `${priority} | ${item.text}\r\n`;
+        }
+    });
+
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `global_goals_backup_${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+
+// 2. ТРИГГЕР ВЫБОРА ФАЙЛА
+document.getElementById('btn-upload-goals-trigger')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const fileInput = document.getElementById('file-upload-goals');
+    if (fileInput) fileInput.click();
+});
+
+// 3. ИМПОРТ: Читает файл .txt и мгновенно восстанавливает цели с их приоритетами
+document.getElementById('file-upload-goals')?.addEventListener('change', (e) => {
+    // ИСПРАВЛЕНО: Добавлен индекс, чтобы взять сам файл из списка
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const fileContent = event.target.result;
+        const lines = fileContent.split(/\r?\n/);
+        let importedCount = 0;
+
+        if (typeof goalsHistoryTasks === 'undefined') window.goalsHistoryTasks = [];
+
+        lines.forEach((line) => {
+            const cleanedLine = line.trim();
+            if (!cleanedLine) return;
+
+            // Разбиваем строку по разделителю "|"
+            const parts = cleanedLine.split('|');
+
+            if (parts.length >= 2) {
+                // Извлекаем приоритет [0] и текст [1]
+                const filePriority = parts[0].trim().toLowerCase();
+                const goalText = parts.slice(1).join('|').trim();
+
+                const validPriorities = ['low', 'medium', 'high'];
+                const finalPriority = validPriorities.includes(filePriority) ? filePriority : 'medium';
+
+                // Умная проверка на дубликаты
+                const isDuplicate = goalsHistoryTasks.some(existingItem => {
+                    return existingItem.text.toLowerCase() === goalText.toLowerCase();
+                });
+
+                if (!isDuplicate && goalText !== "") {
+                    goalsHistoryTasks.push({
+                        text: goalText,
+                        priority: finalPriority
+                    });
+                    importedCount++;
+                }
+            }
+        });
+
+        alert(`Импорт завершен! Успешно восстановлено целей: ${importedCount}`);
+
+        e.target.value = ''; // Обнуляем выбор файла
+        if (typeof saveState === 'function') saveState();
+        if (typeof updateDisplay === 'function') updateDisplay();
+    };
+    reader.readAsText(file); // Теперь метод работает идеально!
+});
+
+
+
+// Функция плавного открытия/закрытия глобальных целей
+window.toggleGoalsSpoiler = function() {
+    const content = document.getElementById('goals-spoiler-content');
+    const arrow = document.getElementById('goals-spoiler-arrow');
+
+    if (!content || !arrow) return;
+
+    if (content.style.display === 'none') {
+        content.style.display = 'flex';
+        arrow.textContent = 'Свернуть ▲';
+    } else {
+        content.style.display = 'none';
+        arrow.textContent = 'Раскрыть ▼';
+    }
+};
 
 
 

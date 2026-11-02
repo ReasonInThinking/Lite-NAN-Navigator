@@ -971,102 +971,108 @@ if ('serviceWorker' in navigator) {
 
 
 
-  const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+// Проверяем поддержку и тип устройства
+const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  // 1. Проверяем устройство: мобилка или ПК
-  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+// Глобальные переменные для фиксации активных элементов
+let currentInputTarget = null;
+let currentButtonTarget = null;
 
-  // Переменные, которые помнят активные элементы
-  let currentInputTarget = null;
-  let currentButtonTarget = null;
+function restoreButtonText(btn) {
+    if (!btn) return;
+    btn.innerHTML = 'ВКЛ МИКРО 🎙️';
+}
 
-  // Функция возвращает текст "ВКЛ МИКРО 🎙️" для ОБЕИХ кнопок
-  function restoreButtonText(btn) {
-      if (!btn) return;
-      btn.innerHTML = 'ВКЛ МИКРО 🎙️';
-  }
+function fallbackToKeyboard() {
+    if (window.globalRecognition) { 
+        try { window.globalRecognition.abort(); } catch(e) {} 
+    }
+    if (currentButtonTarget) restoreButtonText(currentButtonTarget);
+    if (currentInputTarget) {
+        const input = currentInputTarget;
+        setTimeout(() => { input.focus(); }, 50);
+    }
+}
 
-  function fallbackToKeyboard() {
-      if (window.globalRecognition) { try { window.globalRecognition.abort(); } catch(e) {} }
-      if (currentButtonTarget) restoreButtonText(currentButtonTarget);
-      if (currentInputTarget) {
-          const input = currentInputTarget;
-          setTimeout(() => { input.focus(); }, 50);
-      }
-  }
+// 1. ЕСЛИ ЭТО ПК — СРАЗУ ВЫХОДИМ (Кнопки уже скрыты через CSS)
+if (!isMobileDevice) {
+    console.log("Режим ПК: голосовые скрипты отключены.");
+} 
+// 2. ЕСЛИ ЭТО МОБИЛКА — НАСТРАИВАЕМ РОВНО ОДИН РАЗ
+else if (SpeechRecognition && isMobileDevice) {
+    
+    // Создаем движок строго один раз, если его еще нет
+    if (!window.globalRecognition) {
+        window.globalRecognition = new RecognitionInstance();
+    }
 
-  // 2. ЕСЛИ ЭТО ПК — НАМЕРТВО СКРЫВАЕМ МИКРОФОНЫ, ЧТОБЫ ИЗБЕЖАТЬ ВЫЛЕТОВ
-  if (!isMobileDevice) {
-      console.log("Режим ПК: скрываем значки микрофонов.");
-      if (document.getElementById('voice-btn')) document.getElementById('voice-btn').style.display = 'none';
-      if (document.getElementById('modal-queue-voice-btn')) document.getElementById('modal-queue-voice-btn').style.display = 'none';
-  }
-  // 3. ЕСЛИ ЭТО МОБИЛКА И ЕСТЬ ПОДДЕРЖКА ГОЛОСА — ВКЛЮЧАЕМ НАШУ РАБОЧУЮ СХЕМУ
-  else if (SpeechRecognition && isMobileDevice) {
+    function RecognitionInstance() {
+        const rec = new SpeechRecognition();
+        rec.lang = 'ru-RU';
+        rec.continuous = false;
+        rec.interimResults = false;
 
-      if (!window.globalRecognition) {
-          window.globalRecognition = new SpeechRecognition();
-          window.globalRecognition.lang = 'ru-RU';
-          window.globalRecognition.continuous = false;
-          window.globalRecognition.interimResults = false;
+        rec.onresult = (event) => {
+            if (event && event.results && event.results[0] && event.results[0][0]) {
+                if (currentInputTarget) {
+                    currentInputTarget.value = event.results[0][0].transcript;
+                }
+            } else {
+                fallbackToKeyboard();
+            }
+            if (currentButtonTarget) restoreButtonText(currentButtonTarget);
+        };
 
-          window.globalRecognition.onresult = (event) => {
-              if (event && event.results && event.results[0] && event.results[0][0]) {
-                  if (currentInputTarget) {
-                      currentInputTarget.value = event.results[0][0].transcript;
-                  }
-              } else {
-                  fallbackToKeyboard();
-              }
-              if (currentButtonTarget) restoreButtonText(currentButtonTarget);
-          };
+        rec.onerror = (event) => {
+            console.error("Ошибка микрофона на мобильном: ", event.error);
+            fallbackToKeyboard(); // При любом лаге сети мгновенно поднимает FUTO
+        };
 
-          window.globalRecognition.onerror = (event) => {
-              console.error("Ошибка микрофона на мобильном: ", event.error);
-              fallbackToKeyboard(); // При лаге сети мгновенно вызовет клавиатуру FUTO
-          };
+        rec.onend = () => {
+            if (currentButtonTarget) restoreButtonText(currentButtonTarget);
+        };
 
-          window.globalRecognition.onend = () => {
-              if (currentButtonTarget) restoreButtonText(currentButtonTarget);
-          };
-      }
+        return rec;
+    }
 
-      // Настройка кнопок для мобильных устройств
-      function setupMobileVoiceButton(btnId, inputId) {
-          const btn = document.getElementById(btnId);
-          const input = document.getElementById(inputId);
-          if (!btn || !input) return;
+    // Чистая функция привязки событий (БЕЗ ДУБЛИРОВАНИЯ)
+    function setupMobileVoiceButton(btnId, inputId) {
+        const btn = document.getElementById(btnId);
+        const input = document.getElementById(inputId);
+        if (!btn || !input) return;
 
-          btn.addEventListener('click', (e) => {
-              if (btnId === 'modal-queue-voice-btn') {
-                  e.stopPropagation(); // Защита updateDisplay в очереди
-              }
+        // Удаляем старые обработчики, если они вдруг зависли в памяти PWA
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
 
-              if (btn.textContent.includes('🛑')) {
-                  fallbackToKeyboard();
-                  return;
-              }
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (btnId === 'modal-queue-voice-btn') {
+                e.stopPropagation(); // Защита от конфликта с updateDisplay в очереди
+            }
 
-              currentButtonTarget = btn;
-              currentInputTarget = input;
+            if (newBtn.textContent.includes('🛑')) {
+                fallbackToKeyboard();
+                return;
+            }
 
-              try {
-                  window.globalRecognition.start();
-                  btn.innerHTML = 'СТОП 🛑';
-              } catch (e) {
-                  fallbackToKeyboard();
-              }
-          });
-      }
+            currentButtonTarget = newBtn;
+            currentInputTarget = input;
 
-      setupMobileVoiceButton('voice-btn', 'main-task-input');
-      setupMobileVoiceButton('modal-queue-voice-btn', 'modal-queue-input');
-  } else {
-      // Резервный случай: если на мобилке нет встроенного SpeechRecognition
-      if (document.getElementById('voice-btn')) document.getElementById('voice-btn').style.display = 'none';
-      if (document.getElementById('modal-queue-voice-btn')) document.getElementById('modal-queue-voice-btn').style.display = 'none';
-  }
+            try {
+                window.globalRecognition.start();
+                newBtn.innerHTML = 'СТОП 🛑'; 
+            } catch (err) {
+                fallbackToKeyboard();
+            }
+        });
+    }
 
+    // Запускаем настройку кнопок строго по их уникальным ID
+    setupMobileVoiceButton('voice-btn', 'main-task-input');
+    setupMobileVoiceButton('modal-queue-voice-btn', 'modal-queue-input');
+}
 
 
 

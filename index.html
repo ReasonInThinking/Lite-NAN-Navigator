@@ -267,10 +267,12 @@
   <button class="btn-close-modal">✕</button>
 </div>
 
-              <div style="display: flex; gap: 10px; width: 100%;">
-                  <input type="text" id="modal-queue-input" class="mobile-input" style="height: 50px;" placeholder="Добавить в очередь дня...">
-                  <button class="btn-action" id="modal-queue-add-btn" style="width: 50px; height: 50px;">+</button>
-              </div>
+           <div style="display: flex; gap: 10px; width: 100%; align-items: center;">
+    <input type="text" id="modal-queue-input" class="mobile-input" style="height: 50px; flex: 1;" placeholder="Добавить в очередь дня...">
+    <button id="modal-queue-voice-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 5px; height: 50px; display: flex; align-items: center; justify-content: center;">🎙️</button>
+    <button class="btn-action" id="modal-queue-add-btn" style="width: 50px; height: 50px; flex-shrink: 0;">+</button>
+</div>
+
               <div class="list-container" id="modal-queue-list"></div>
               <div id="modal-queue-empty" class="empty-text">Очередь планов пуста.</div>
           </div>
@@ -918,6 +920,59 @@ if ('serviceWorker' in navigator) {
   }
 
 
+
+const queueVoiceBtn = document.getElementById('modal-queue-voice-btn');
+const queueTaskInput = document.getElementById('modal-queue-input');
+
+if (SpeechRecognition) {
+    const queueRecognition = new SpeechRecognition();
+    queueRecognition.lang = 'ru-RU';
+    queueRecognition.continuous = false;
+    queueRecognition.interimResults = false;
+
+    function fallbackQueueToKeyboard() {
+        try { queueRecognition.abort(); } catch(e) {}
+        queueVoiceBtn.textContent = '🎙️';
+        setTimeout(() => { queueTaskInput.focus(); }, 50);
+    }
+
+    queueVoiceBtn.addEventListener('click', () => {
+        if (queueVoiceBtn.textContent === '🛑') {
+            fallbackQueueToKeyboard();
+            return;
+        }
+
+        try {
+            queueRecognition.start();
+            queueVoiceBtn.textContent = '🛑';
+        } catch (e) {
+            fallbackQueueToKeyboard();
+        }
+    });
+
+    queueRecognition.onresult = (event) => {
+        if (event && event.results && event.results[0] && event.results[0][0]) {
+            queueTaskInput.value = event.results[0][0].transcript;
+        } else {
+            fallbackQueueToKeyboard();
+        }
+        queueVoiceBtn.textContent = '🎙️';
+    };
+
+    queueRecognition.onerror = () => {
+        fallbackQueueToKeyboard();
+    };
+
+    queueRecognition.onend = () => {
+        queueVoiceBtn.textContent = '🎙️';
+    };
+} else {
+    queueVoiceBtn.style.display = 'none';
+}
+
+
+
+    
 const voiceBtn = document.getElementById('voice-btn');
 const taskInput = document.getElementById('main-task-input');
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

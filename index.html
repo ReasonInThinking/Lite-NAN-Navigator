@@ -218,7 +218,7 @@
               <div id="setup-view" style="display: flex; flex-direction: column; gap: 16px;">
                   <div class="card-tag">Новый шаг ⚡</div>
                   <div class="task-display-text" style="min-height: auto;">Запишите задачу на сегодня:</div>
-                  <button id="voice-btn" style="color: silver; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 5px;">ВКЛ.Микро🎙️</button>
+                  <button id="voice-btn" style="color: silver; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 5px;">ВКЛ МИКРО 🎙️</button>
 
                   <input type="text" id="main-task-input" class="mobile-input" placeholder="Напиши задачу на сейчас...">
                   <button class="btn-action" id="main-start-btn" style="background: var(--accent-yellow); color: #090a0f;">Поехали! Начать 🚀</button>
@@ -934,13 +934,19 @@ if (SpeechRecognition) {
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    // Переменная, которая будет помнить, какое поле мы сейчас надиктовываем
+    // Переменные, которые помнят активные элементы
     let currentInputTarget = null;
     let currentButtonTarget = null;
 
+    // Функция возвращает текст "ВКЛ МИКРО 🎙️" для ОБЕИХ кнопок
+    function restoreButtonText(btn) {
+        if (!btn) return;
+        btn.innerHTML = 'ВКЛ МИКРО 🎙️';
+    }
+
     function fallbackToKeyboard() {
         try { recognition.abort(); } catch(e) {}
-        if (currentButtonTarget) currentButtonTarget.textContent = '🎙️';
+        if (currentButtonTarget) restoreButtonText(currentButtonTarget);
         if (currentInputTarget) {
             const input = currentInputTarget;
             setTimeout(() => { input.focus(); }, 50);
@@ -955,7 +961,8 @@ if (SpeechRecognition) {
         if (!btn || !input) return;
 
         btn.addEventListener('click', () => {
-            if (btn.textContent === '🛑') {
+            // Проверяем, идет ли уже запись (есть ли эмодзи стопа)
+            if (btn.textContent.includes('🛑')) {
                 fallbackToKeyboard();
                 return;
             }
@@ -966,14 +973,14 @@ if (SpeechRecognition) {
 
             try {
                 recognition.start();
-                btn.textContent = '🛑';
+                btn.innerHTML = 'СТОП 🛑'; // Обе кнопки при записи пишут СТОП
             } catch (e) {
                 fallbackToKeyboard();
             }
         });
     }
 
-    // Активируем оба микрофона одной строчкой для каждого!
+    // Активируем оба микрофона
     setupVoiceButton('voice-btn', 'main-task-input');
     setupVoiceButton('modal-queue-voice-btn', 'modal-queue-input');
 
@@ -985,7 +992,7 @@ if (SpeechRecognition) {
         } else {
             fallbackToKeyboard();
         }
-        if (currentButtonTarget) currentButtonTarget.textContent = '🎙️';
+        if (currentButtonTarget) restoreButtonText(currentButtonTarget);
     };
 
     recognition.onerror = () => {
@@ -993,12 +1000,11 @@ if (SpeechRecognition) {
     };
 
     recognition.onend = () => {
-        if (currentButtonTarget) currentButtonTarget.textContent = '🎙️';
+        if (currentButtonTarget) restoreButtonText(currentButtonTarget);
     };
 } else {
-    // Если браузер не поддерживает распознавание, скрываем обе кнопки
-    if (document.getElementById('voice-btn')) document.getElementById('voice-btn').style.display = 'none';
-    if (document.getElementById('modal-queue-voice-btn')) document.getElementById('modal-queue-voice-btn').style.display = 'none';
+    // Кнопки никогда не скрываются, чтобы всегда служить триггером для оффлайн-клавиатуры FUTO
+    console.log("SpeechRecognition не поддерживается устройством. Кнопки работают для вызова клавиатуры.");
 }
 
 

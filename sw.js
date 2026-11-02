@@ -2,7 +2,7 @@ const CACHE_NAME = 'lite-nav-v1';
 const ASSETS = [
   '/Lite-NAN-Navigator/',
   '/Lite-NAN-Navigator/index.html',
-  '/Lite-NAN-Navigator/image.png' // Добавьте сюда другие ваши файлы (например, style.css), если они лежат отдельно
+  '/Lite-NAN-Navigator/image.png' 
 ];
 
 // Установка: кэшируем все файлы приложения в память телефона
@@ -27,8 +27,14 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Перехват запросов: если интернета нет — берем файлы из памяти телефона мгновенно!
+// Перехват запросов: если интернета нет — берем файлы из памяти телефона
 self.addEventListener('fetch', (e) => {
+  // ЗАЩИТА МИКРОФОНА: Если запрос идет к системному Speech API, blob-потокам аудио или серверам Google,
+  // мы полностью игнорируем его в Service Worker и отдаем управление браузеру напрямую!
+  if (e.request.url.includes('speech') || e.request.url.includes('google.com') || e.request.url.startsWith('blob:')) {
+    return; 
+  }
+
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;

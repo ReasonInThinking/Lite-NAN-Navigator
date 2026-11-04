@@ -458,14 +458,7 @@
 
 
 <script>
-// Регистрируем Service Worker для полной автономности в оффлайне
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/Lite-NAN-Navigator/sw.js')
-      .then(reg => console.log('Оффлайн-режим успешно активирован!'))
-      .catch(err => console.log('Ошибка активации оффлайна:', err));
-  });
-}
+
 
 
   // 1. Поиск элементов управления главного экрана
@@ -1250,6 +1243,19 @@ window.toggleGoalsSpoiler = function() {
   updateDisplay();
 
 
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/Lite-NAN-Navigator/sw.js')
+        .then((reg) => console.log('Service Worker успешно зарегистрирован!', reg.scope))
+        .catch((err) => console.error('Ошибка регистрации:', err));
+    });
+  }
+</script>
+
+
+
+    
 </script>
 
 </body>

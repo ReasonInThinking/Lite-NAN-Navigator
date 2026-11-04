@@ -1,9 +1,10 @@
 const CACHE_NAME = 'lite-nav-v1';
 const ASSETS = [
-  '/Lite-NAN-Navigator/',
-  '/Lite-NAN-Navigator/index.html',
-  '/Lite-NAN-Navigator/image.png' 
+  './',             // Кэширует главную страницу (корневой запрос)
+  './index.html',   // Кэширует сам файл страницы
+  './image.png'     // Кэширует картинку в этой же папке
 ];
+
 
 // Установка: кэшируем все файлы приложения в память телефона
 self.addEventListener('install', (e) => {

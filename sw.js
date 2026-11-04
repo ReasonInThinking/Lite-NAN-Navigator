@@ -9,7 +9,10 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
+      // Заворачиваем в catch, чтобы один битый файл/картинка не ломали всю установку
+      return cache.addAll(ASSETS).catch(err => {
+        console.error('Ошибка предкэширования: проверьте пути к файлам', err);
+      });
     }).then(() => self.skipWaiting())
   );
 });
@@ -29,20 +32,24 @@ self.addEventListener('activate', (e) => {
 
 // Перехват запросов: если интернета нет — берем файлы из памяти телефона
 self.addEventListener('fetch', (e) => {
-  // ЗАЩИТА МИКРОФОНА: Если запрос идет к системному Speech API, blob-потокам аудио или серверам Google,
-  // мы полностью игнорируем его в Service Worker и отдаем управление браузеру напрямую!
-  if (e.request.url.includes('speech') || e.request.url.includes('google.com') || e.request.url.startsWith('blob:')) {
-    return; 
+  const url = e.request.url;
+
+  // ИСПРАВЛЕНО: Теперь запросы к микрофону, blob и Google отправляются напрямую в сеть, а не зависают
+  if (url.includes('speech') || url.includes('google.com') || url.startsWith('blob:')) {
+    return e.respondWith(fetch(e.request)); 
   }
 
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
+      
       return fetch(e.request).catch(() => {
         // Оффлайн-заглушка для index.html
         if (e.request.mode === 'navigate') {
           return caches.match('/Lite-NAN-Navigator/index.html');
         }
+        // Возвращаем пустой ответ для картинок/скриптов, чтобы консоль не сыпала ошибками
+        return new Response('', { status: 404, statusText: 'Offline' });
       });
     })
   );

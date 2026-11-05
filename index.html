@@ -788,6 +788,7 @@
               // Выполнить глобальную цель
               priorityBoxes[key].querySelector('.btn-svg-complete').addEventListener('click', (e) => {
                   e.stopPropagation();
+                  playCompleteSound();
                   goalsHistoryTasks.unshift({ text: targetText, priority: key });
                   globalPriorities[key] = '';
                   saveState();
@@ -797,6 +798,7 @@
               // Стереть глобальную цель
               priorityBoxes[key].querySelector('.btn-svg-delete').addEventListener('click', (e) => {
                   e.stopPropagation();
+                   playDeleteSound();
                   globalPriorities[key] = '';
                   saveState();
                   updateDisplay();
@@ -1143,6 +1145,38 @@ function playCompleteSound() {
         console.log("Звук заблокирован системой устройства:", e);
     }
 }
+
+
+// Универсальный оффлайн-звук удаления/отмены для ПК и смартфонов
+function playDeleteSound() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+
+        const ctx = new AudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(330, ctx.currentTime); // Более низкий тон (Нота Ми)
+        osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.08); // Падение частоты вниз (эффект отмены)
+
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08); // Короткий клик на 80 миллисекунд
+    } catch (e) {
+        console.log("Звук удаления заблокирован устройством");
+    }
+}
+
+
 
 
 // 1. ЭКСПОРТ: Скачивает цели в чистом текстовом формате (.txt)

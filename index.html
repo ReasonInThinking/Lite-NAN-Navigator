@@ -884,6 +884,7 @@
 
   // Быстрое добавление задач в ежедневную очередь планов
   modalQueueAddBtn.addEventListener('click', () => {
+      playAddSound();
       const text = modalQueueInput.value.trim();
       if (text === '') return;
       queueDailyTasks.push(text);
@@ -1176,6 +1177,34 @@ function playDeleteSound() {
     }
 }
 
+// Универсальный оффлайн-звук добавления планов для ПК и смартфонов
+function playAddSound() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+
+        const ctx = new AudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, ctx.currentTime); // Мягкая стартовая нота Ля
+        osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.06); // Быстрый взлет частоты вверх
+
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08); // Звучит ровно 80 миллисекунд
+    } catch (e) {
+        console.log("Звук добавления заблокирован устройством");
+    }
+}
 
 
 

@@ -461,6 +461,10 @@
 
 
 
+
+
+
+
   // 1. Поиск элементов управления главного экрана
   const setupView = document.getElementById('setup-view');
   const focusView = document.getElementById('focus-view');
@@ -527,7 +531,14 @@
       localStorage.setItem(KEY_GLOBAL_PRIORITIES, JSON.stringify(globalPriorities));
       localStorage.setItem(KEY_DAILY_HISTORY, JSON.stringify(dailyHistoryTasks));
       localStorage.setItem(KEY_GOALS_HISTORY, JSON.stringify(goalsHistoryTasks));
+
+      // РЕЗЕРВНЫЙ СЕЙФ: если в массиве реально есть задачи, делаем их скрытую копию,
+      // которую утренний автосброс не сможет достать и обнулить!
+      if (queueDailyTasks && queueDailyTasks.length > 0) {
+          localStorage.setItem('LITE_NAV_BACKUP_QUEUE', JSON.stringify(queueDailyTasks));
+      }
   }
+
 
   // Преобразование секунд в формат ЧЧ:ММ:СС
   function formatTimeDigits(seconds) {
@@ -1238,6 +1249,25 @@ window.toggleGoalsSpoiler = function() {
 };
 
 
+// --- АВТОМАТИЧЕСКОЕ ВОССТАНОВЛЕНИЕ ВЧЕРАШНИХ ЗАДАЧ ПО УТРАМ ---
+try {
+    // Если утренний автосброс очистил массив queueDailyTasks, и он пуст
+    if (!queueDailyTasks || queueDailyTasks.length === 0) {
+        const backupData = localStorage.getItem('LITE_NAV_BACKUP_QUEUE');
+        if (backupData) {
+            // Достаем вчерашние сохраненные задачи из скрытого сейфа
+            queueDailyTasks = JSON.parse(backupData);
+            console.log("Утренний сброс нейтрализован! Задачи восстановлены из резервного сейфа.");
+
+            // Перерисовываем интерфейс, чтобы задачи мгновенно появились на экране
+            if (typeof updateDisplay === 'function') updateDisplay();
+        }
+    }
+} catch (e) {
+    console.error("Ошибка автовосстановления планов: ", e);
+}
+
+
 
   // Полный запуск интерфейса
   updateDisplay();
@@ -1252,6 +1282,8 @@ window.toggleGoalsSpoiler = function() {
     });
   }
 </script>
+
+
 
 
 

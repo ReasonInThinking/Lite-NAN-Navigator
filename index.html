@@ -941,30 +941,24 @@
 
 
   // ОЧИСТКА ИСКЛЮЧИТЕЛЬНО ЕЖЕДНЕВНЫХ ДЕЛ НА ДЕНЬ ПО КНОПКЕ ИЗ МОДАЛКИ
+  // ОЧИСТКА ИСКЛЮЧИТЕЛЬНО ЗАВЕРШЕННЫХ ЕЖЕДНЕВНЫХ ДЕЛ (ИСТОРИИ)
   const btnClearDailiesOnly = document.getElementById('btn-clear-dailies-only');
 
   if (btnClearDailiesOnly) {
       btnClearDailiesOnly.addEventListener('click', (e) => {
           e.stopPropagation(); // Защита от всплытия клика
 
-          if (confirm('Очистить только текущую задачу, очередь планов и историю дел на сегодня? 🐾')) {
-              // Обнуляем переменные бытового модуля
-              currentDailyTask = '';
-              queueDailyTasks = [];
+          if (confirm('Очистить историю завершённых ежедневных дел за сегодня? Текущая задача и очередь планов останутся. 🐾')) {
+              // Обнуляем только массив выполненных бытовых задач
               dailyHistoryTasks = [];
 
-              // Чистим метку запущенного таймера
-              localStorage.removeItem('winter_focus_daily_time_start');
-
-              // Перезаписываем обновлённые массивы рутины в память телефона
-              localStorage.setItem('winter_focus_current_daily', currentDailyTask);
-              localStorage.setItem('winter_focus_queue_daily', JSON.stringify(queueDailyTasks));
+              // Перезаписываем очищенную историю в память телефона
               localStorage.setItem('winter_focus_dailies_history', JSON.stringify(dailyHistoryTasks));
 
               // Закрываем окно очереди планов
               document.getElementById('modal-queue')?.classList.add('hidden');
 
-              // Мгновенно обновляем экраны
+              // Мгновенно обновляем списки на экране
               updateDisplay();
           }
       });

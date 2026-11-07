@@ -1,16 +1,15 @@
-const CACHE_NAME = 'lite-nav-v1';
-const ASSETS = [
-  './',             // Кэширует главную страницу (корневой запрос)
-  './index.html',   // Кэширует сам файл страницы
-  './image.png'     // Кэширует картинку в этой же папке
-];
+const CACHE_NAME = 'lite-nav-v2'; // Обновили версию для перезаписи старого кэша
 
+const ASSETS = [
+  './',
+  './index.html',
+  './image.png'
+];
 
 // Установка: кэшируем все файлы приложения в память телефона
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Заворачиваем в catch, чтобы один битый файл/картинка не ломали всю установку
       return cache.addAll(ASSETS).catch(err => {
         console.error('Ошибка предкэширования: проверьте пути к файлам', err);
       });
@@ -35,7 +34,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = e.request.url;
 
-  // ИСПРАВЛЕНО: Теперь запросы к микрофону, blob и Google отправляются напрямую в сеть, а не зависают
+  // Исключения, которые всегда идут напрямую в сеть
   if (url.includes('speech') || url.includes('google.com') || url.startsWith('blob:')) {
     return e.respondWith(fetch(e.request)); 
   }
@@ -45,9 +44,9 @@ self.addEventListener('fetch', (e) => {
       if (cachedResponse) return cachedResponse;
       
       return fetch(e.request).catch(() => {
-        // Оффлайн-заглушка для index.html
+        // ИСПРАВЛЕНО: Если сеть пропала во время навигации, берем то, что гарантированно есть в кэше
         if (e.request.mode === 'navigate') {
-          return caches.match('/Lite-NAN-Navigator/index.html');
+          return caches.match('./index.html') || caches.match('./');
         }
         // Возвращаем пустой ответ для картинок/скриптов, чтобы консоль не сыпала ошибками
         return new Response('', { status: 404, statusText: 'Offline' });
